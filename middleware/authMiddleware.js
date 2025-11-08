@@ -27,3 +27,4 @@ exports.authorize = () => {
     };
 };
 
+module.exports = { protect: exports.protect, authorize: exports.authorize };

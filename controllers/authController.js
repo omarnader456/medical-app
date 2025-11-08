@@ -32,3 +32,4 @@ exports.login = async (req, res) => {
     }
 };
 
+module.exports = { register: exports.register, login: exports.login };
