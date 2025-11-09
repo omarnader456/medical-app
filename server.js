@@ -38,15 +38,11 @@ app.use(csrfProtection);
 
 // Add CSRF token to cookies
 app.use((req, res, next) => {
-    res.cookie('XSRF-TOKEN', req.csrfToken());
+    if (req.csrfToken) {
+        res.cookie('XSRF-TOKEN', req.csrfToken());
+    }
     next();
 });
-
-// Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/patients', patientRoutes);
-
-// Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
     console.log(` Server running on port ${PORT}`);

@@ -5,9 +5,9 @@ const { protect, authorize } = require('../middleware/authMiddleware');
 
 router.use(protect);
 
-router.get('/', authorize(), getNurses);
+router.get('/',getNurses);
 router.post('/', authorize(), createNurse);
-router.get('/:id', authorize(), getNurseById);
+router.get('/:id',  getNurseById);
 router.delete('/:id', authorize(), deleteNurse);
 
 module.exports = router;

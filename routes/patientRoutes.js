@@ -6,10 +6,10 @@ const {doctorandnurseOnly,adminonly,doctorsOnly,nurseOnly,adminOrDoctor,adminOrN
 
 router.use(protect);
 
-router.get('/', authorize(), adminonly(),getPatients);
+router.get('/',getPatients);
 router.post('/', authorize(), adminonly(),createPatient);
 router.get('/:id', authorize(), getPatientById);
-router.put('/:id', authorize(), adminOrDoctor(),updatePatient);
+router.put('/:id',  adminOrDoctor(),updatePatient);
 router.delete('/:id', authorize(), adminonly(),deletePatient);
 
 module.exports = router;
