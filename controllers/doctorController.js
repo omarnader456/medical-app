@@ -1,20 +1,17 @@
 const User =require('../models/userModel');
 const Doctor = require('../models/doctorModel');
+const asyncHandler = require('express-async-handler');
 
-exports.getDoctors = async (req, res) => {
+exports.getDoctors = asyncHandler(async (req, res) => {
     try {
-        const user = req.user;
-        if (user.role !== 'admin') {
-            return res.status(403).json({ message: 'Access denied' });
-        }
         const doctors = await Doctor.find({}, 'name _id speciality');
         res.status(200).json(doctors);
     } catch (error) {
         res.status(500).json({ message: 'Server error' });
     }
-};
+});
 
-exports.createDoctor = async (req, res) => {
+exports.createDoctor = asyncHandler(async (req, res) => {
     try {
         const user = req.user;
         if (user.role !== 'admin') {
@@ -30,13 +27,15 @@ exports.createDoctor = async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: 'Server error' });
     }
-};
-exports.getDoctorById = async (req, res) => {
+});
+exports.getDoctorById = asyncHandler(async (req, res) => {
     try {
-        if (req.user.role !== 'admin') {
-            return res.status(403).json({ message: 'Access denied' });
+        const name=req.body.name;
+        const id =await Doctor.findOne({name:name}).select('_id');
+        if (!id){
+            return res.status(404).json({message:'doctor no found'});
         }
-        const doctor = await Doctor.findById(req.params.id);
+        const doctor = await Doctor.findById(id);
         if (!doctor) {
             return res.status(404).json({ message: 'Doctor not found' });
         }
@@ -44,15 +43,20 @@ exports.getDoctorById = async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: 'Server error' });
     }
-};
+});
 
-exports.deleteDoctor = async (req, res) => {
+exports.deleteDoctor = asyncHandler(async (req, res) => {
     try {
         const user = req.user;
         if (user.role !== 'admin') {
             return res.status(403).json({ message: 'Access denied' });
         }
-        const doctor = await Doctor.findByIdAndDelete(req.params.id);
+        const name = req.body.name;
+        const id= await Doctor.findOne({name:name}).select('_id');
+        if (!id){
+            return res.status(404).json({message:'doctor not found'});
+        }
+        const doctor = await Doctor.findByIdAndDelete(id);
         if (!doctor) {
             return res.status(404).json({ message: 'Doctor not found' });
         }
@@ -60,14 +64,19 @@ exports.deleteDoctor = async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: 'Server error' });
     }
-};
-exports.updateDoctor = async (req, res) => {
+});
+exports.updateDoctor = asyncHandler(async (req, res) => {
     try {
         const user = req.user;
         if (user.role !== 'admin') {
             return res.status(403).json({ message: 'Access denied' });
         }
-        const doctor = await Doctor.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        const name=req.body.name;
+        const id=await Doctor.findOne({name:name}).select('_id');
+        if (!id){
+            res.status(404).json({message:'doctor not found'});
+        }
+        const doctor = await Doctor.findByIdAndUpdate(id, req.body, { new: true });
         if (!doctor) {
             return res.status(404).json({ message: 'Doctor not found' });
         }
@@ -75,7 +84,7 @@ exports.updateDoctor = async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: 'Server error' });
     }
-};
+});
 
 module.exports = {
     getDoctors: exports.getDoctors,

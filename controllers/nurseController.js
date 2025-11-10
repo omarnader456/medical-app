@@ -1,8 +1,9 @@
 const User =require('../models/userModel');
 const Nurse = require('../models/nurseModel');
+const asyncHandler = require('express-async-handler');
 
 
-exports.createNurse = async (req, res) => {
+exports.createNurse = asyncHandler(async (req, res) => {
     try {
         const user = req.user;
         if (user.role !== 'admin') {
@@ -18,24 +19,20 @@ exports.createNurse = async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: 'Server error' });
     }
-};
-exports.getNurses = async (req, res) => {
+});
+
+exports.getNurses = asyncHandler(async (req, res) => {
     try {
         const user = req.user;
-        if (user.role !== 'admin') {
-            return res.status(403).json({ message: 'Access denied' });
-        }
         const nurses = await Nurse.find({}, 'name _id department');
         res.status(200).json(nurses);
     } catch (error) {
         res.status(500).json({ message: 'Server error' });
     }
-};
-exports.getNurseById = async (req, res) => {
+});
+
+exports.getNurseById = asyncHandler(async (req, res) => {
     try {
-        if (req.user.role !== 'admin') {
-            return res.status(403).json({ message: 'Access denied' });
-        }
         const nurse = await Nurse.findById(req.params.id);
         if (!nurse) {
             return res.status(404).json({ message: 'Nurse not found' });
@@ -44,8 +41,9 @@ exports.getNurseById = async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: 'Server error' });
     }
-};
-exports.deleteNurse = async (req, res) => {
+});
+
+exports.deleteNurse = asyncHandler(async (req, res) => {
     try {
         const user = req.user;
         if (user.role !== 'admin') {
@@ -59,5 +57,5 @@ exports.deleteNurse = async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: 'Server error' });
     }
-};
+});
 module.exports = { createNurse: exports.createNurse, getNurses: exports.getNurses, getNurseById: exports.getNurseById, deleteNurse: exports.deleteNurse };

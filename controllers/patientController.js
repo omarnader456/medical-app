@@ -3,9 +3,10 @@ const Patient = require('../models/Patient');
 const Doctor = require('../models/Doctor');
 const Nurse = require('../models/Nurse');
 const Assignpat = require('../models/Assignpat');
+const asyncHandler = require('express-async-handler');
 
 
-exports.getPatients = async (req, res) => {
+exports.getPatients = asyncHandler(async (req, res) => {
     try {
     const user=req.user;
     let patients;
@@ -27,9 +28,9 @@ exports.getPatients = async (req, res) => {
     catch (error) {
         res.status(500).json({ message: 'Server error' });
     }
-};
+});
 
-exports.createPatient = async (req, res) => {
+exports.createPatient = asyncHandler(async (req, res) => {
     try {
         const user = req.user;
         if (user.role !== 'admin') {
@@ -45,13 +46,10 @@ exports.createPatient = async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: 'Server error' });
     }
-};
-exports.getPatientById = async (req, res) => {
+});
+exports.getPatientById = asyncHandler(async (req, res) => {
     try {
-        if (req.user.role !== 'admin') {
-            return res.status(403).json({ message: 'Access denied' });
-        }
-        const patient = await Patient.findById(req.params.id);
+        const patient = await Patient.findById(req.params.id)['name _id'];
         if (!patient) {
             return res.status(404).json({ message: 'Patient not found' });
         }
@@ -59,8 +57,8 @@ exports.getPatientById = async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: 'Server error' });
     }   
-};
-exports.updatePatient = async (req, res) => {
+});
+exports.updatePatient = asyncHandler(async (req, res) => {
     try {
         if (req.user.role !== 'admin') {
             return res.status(403).json({ message: 'Access denied' });
@@ -73,8 +71,8 @@ exports.updatePatient = async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: 'Server error' });
     }
-};
-exports.deletePatient = async (req, res) => {
+});
+exports.deletePatient = asyncHandler(async (req, res) => {
     try {
         if (req.user.role !== 'admin') {
             return res.status(403).json({ message: 'Access denied' });
@@ -87,7 +85,7 @@ exports.deletePatient = async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: 'Server error' });
     }
-};
+});
 
 
 module.exports = { getPatients: exports.getPatients,

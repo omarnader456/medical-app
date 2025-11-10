@@ -4,7 +4,7 @@ const asyncHandler = require('express-async-handler');
 
 exports.createMedication = asyncHandler(async (req, res) => {
     const user = req.user;
-    if (user.role !== 'doctor') {
+    if (user.role !== 'doctor'&& user.role !== 'admin') {
         return res.status(403).json({ message: 'Access denied' });
     }
     const { name, description ,sideEffects,dosage } = req.body;
@@ -23,7 +23,7 @@ exports.getMedicationById = asyncHandler(async (req, res) => {
 
 exports.updateMedication = asyncHandler(async (req, res) => {
     const user = req.user;
-    if (user.role !== 'doctor') {
+    if (user.role !== 'doctor' && user.role !== 'admin') {
         return res.status(403).json({ message: 'Access denied' });
     }
     const { name, description ,sideEffects,dosage } = req.body;
@@ -40,7 +40,7 @@ exports.updateMedication = asyncHandler(async (req, res) => {
 
 exports.deleteMedication = asyncHandler(async (req, res) => {
     const user = req.user;
-    if (user.role !== 'doctor') {
+    if (user.role !== 'doctor'&& user.role !== 'admin') {
         return res.status(403).json({ message: 'Access denied' });
     }
     const medication = await Medication.findByIdAndDelete(req.params.id);

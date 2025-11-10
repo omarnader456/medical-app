@@ -1,7 +1,8 @@
 const User =require('../models/userModel');
 const jwt = require('jsonwebtoken');
+const asyncHandler = require('express-async-handler');
 
-exports.register = async (req, res) => {
+exports.register = asyncHandler(async (req, res) => {
     try {
         const { name, email, password, role } = req.body;
         const userExists = await User.findOne({ email });
@@ -15,9 +16,9 @@ exports.register = async (req, res) => {
     catch (error) {
         res.status(500).json({ message: 'Server error' });
     }
-};
+});
 
-exports.login = async (req, res) => {
+exports.login = asyncHandler(async (req, res) => {
     try {
         const { email, password } = req.body;
         const user = await User.findOne({ email });
@@ -30,6 +31,6 @@ exports.login = async (req, res) => {
     catch (error) {
         res.status(500).json({ message: 'Server error' });
     }
-};
+});
 
 module.exports = { register: exports.register, login: exports.login };

@@ -1,25 +1,32 @@
 const User =require('../models/userModel');
+const { updateUserPassword } = require('./userController');
+const asyncHandler = require('express-async-handler');
 
-exports.getAllUsers = async (req, res) => {
+exports.getAllUsers = asyncHandler(async (req, res) => {
     try {
         const user = req.user;
         if (user.role !== 'admin') {
             return res.status(403).json({ message: 'Access denied' });
         }
-        const users = await User.find({}, 'username email role');
+        const users = await User.find({}, 'name email role');
         res.status(200).json(users);
     } catch (error) {
         res.status(500).json({ message: 'Server error' });
     }
-};
+});
 
-exports.deleteUser = async (req, res) => {
+exports.deleteUser = asyncHandler(async (req, res) => {
     try {
         const user = req.user;
         if (user.role !== 'admin') {
             return res.status(403).json({ message: 'Access denied' });
         }
-        const deletedUser = await User.findByIdAndDelete(req.params.id);
+        const name = req.body.name;
+        const id =await User.findOne({name:name}).select('_id');
+        if (!id){
+            return res.status(404).json({ message: 'user not found' });
+        }
+        const deletedUser = await User.findByIdAndDelete(id);
         if (!deletedUser) {
             return res.status(404).json({ message: 'User not found' });
         }
@@ -27,19 +34,24 @@ exports.deleteUser = async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: 'Server error' });
     }
-};
+});
 
-exports.updateUserRole = async (req, res) => {
+exports.updateUserRole = asyncHandler(async (req, res) => {
     try {
         const user = req.user;
         if (user.role !== 'admin') {
             return res.status(403).json({ message: 'Access denied' });
         }
         const { role } = req.body;
+        const name =req.body.name;
+        const id =await  User.findOne({name:name}).select('_id');
+        if (!id){
+            return res.status(404).json({message: 'User not found'});
+        }
         const updatedUser = await User.findByIdAndUpdate(
-            req.params.id,
+            id,
             { role },
-            { new: true, fields: 'username email role' }
+            { new: true, fields: 'name email role' }
         ); 
     } catch (error) {
         res.status(500).json({ message: 'Server error' });
@@ -48,15 +60,11 @@ exports.updateUserRole = async (req, res) => {
         return res.status(404).json({ message: 'User not found' });
     }
     res.status(200).json(updatedUser);
-};
+});
 
-exports.getUserById = async (req, res) => {
+exports.getUserById = asyncHandler(async (req, res) => {
     try {
-        const user = req.user;
-        if (user.role !== 'admin') {
-            return res.status(403).json({ message: 'Access denied' });
-        }
-        const foundUser = await User.findById(req.params.id, 'username email role');
+        const foundUser = await User.findById(req.params.id, 'name email role');
         if (!foundUser) {
             return res.status(404).json({ message: 'User not found' });
         }
@@ -64,37 +72,37 @@ exports.getUserById = async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: 'Server error' });
     }
-};
+});
 
-exports.createUser = async (req, res) => {
+exports.createUser = asyncHandler(async (req, res) => {
     try {
         const user = req.user;
         if (user.role !== 'admin') {
             return res.status(403).json({ message: 'Access denied' });
         }
-        const { username, email, password, role } = req.body;
+        const { name, email, password, role } = req.body;
         const userExists = await User.findOne({ email });
         if (userExists) {
             return res.status(400).json({ message: 'User already exists' });
         }
-        User.create({ username, email, password, role });
+        User.create({ name, email, password, role });
         res.status(201).json({ message: 'User created successfully' });
     } catch (error) {
         res.status(500).json({ message: 'Server error' });
     }
-};
+});
 
-exports.updateUserEmail = async (req, res) => {
+exports.updateUserEmail = asyncHandler(async (req, res) => {
     try {
         const user = req.user;
-        if (user.role !== 'admin') {
+        if (user.id !== req.params.id) {
             return res.status(403).json({ message: 'Access denied' });
         }
         const { email } = req.body;
         const updatedUser = await User.findByIdAndUpdate(
             req.params.id,
             { email },
-            { new: true, fields: 'username email role' }
+            { new: true, fields: 'name email role' }
         );
         if (!updatedUser) {
             return res.status(404).json({ message: 'User not found' });
@@ -103,7 +111,46 @@ exports.updateUserEmail = async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: 'Server error' });
     }
-};
+});
+exports.updateUserName = asyncHandler(async (req, res) => {
+    try {
+        const user = req.user;
+        if (user.id !== req.params.id) {
+            return res.status(403).json({ message: 'Access denied' });
+        }
+        const { name } = req.body;
+        const updatedUser = await User.findByIdAndUpdate(
+            req.params.id,
+            { name },
+            { new: true, fields: 'name email role' }
+        );
+        if (!updatedUser) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        res.status(200).json(updatedUser);
+    } catch (error) {
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+exports.updateUserPassword = asyncHandler(async (req, res) => {
+    try {
+        const user = req.user;
+        if (user.id !== req.params.id) {
+            return res.status(403).json({ message: 'Access denied' });
+        }
+        const { password } = req.body;
+        const updatedUser = await User.findById(req.params.id);
+        if (!updatedUser) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        updatedUser.password = password;
+        await updatedUser.save();
+        res.status(200).json({ message: 'Password updated successfully' });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 
 module.exports = {
     getAllUsers: exports.getAllUsers,
@@ -111,7 +158,9 @@ module.exports = {
     updateUserRole: exports.updateUserRole,
     getUserById: exports.getUserById,
     createUser: exports.createUser,
-    updateUserEmail: exports.updateUserEmail
+    updateUserEmail: exports.updateUserEmail,
+    updateUserName: exports.updateUserName,
+    updateUserPassword:exports.updateUserPassword
 };
 
 
