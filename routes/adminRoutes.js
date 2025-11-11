@@ -1,78 +1,36 @@
 const express = require('express');
-const {    getAllUsers,
-    deleteUser,
-    updateUserRole,
-    getUserById,
-    createUser,
-    updateUserEmail,
-    updateUserName,
-    updateUserPassword} = require('../controllers/adminController');
-const router = express.Router();
+const { getAllUsers, deleteUser, updateUserRole, getUserById, createUser, updateUserEmail, updateUserName, updateUserPassword } = require('../controllers/adminController');
+const { assignPatient, getAssignments, getAssignmentById, deleteAssignment } = require('../controllers/assignpatController');
 const { protect, authorize } = require('../middleware/authMiddleware');
-const {    assignPatient,
-    getAssignments,
-    getAssignmentById,
-    deleteAssignment} =require('../controllers/assignpatController');
-const { body,param, validationResult } = require('express-validator');
-router.use(protect);
-const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).{10,}$/;
+const { param, body, validationResult } = require('express-validator');
 
-router.get('/users', protect,authorize, getAllUsers);
-router.get('/users/:id', protect,param('id').notEmpty().withMessage('require id in url').isMongoId().withMessage('invalid ID'),(req, res, next) => {
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            return res.status(400).json({ errors: errors.array() });
-        }
-        next();
-    },getUserById);
-router.put('/users/:id/role', protect,authorize, param('id').notEmpty().withMessage('id is required').isMongoId().withMessage('invalid id'),(req, res, next) => {
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            return res.status(400).json({ errors: errors.array() });
-        }
-        next();
-    },updateUserRole);
-router.put('/users/:id/email',protect, (req, res, next) => {
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            return res.status(400).json({ errors: errors.array() });
-        }
-        next();
-    },updateUserEmail);
-router.put('/users/:id/name',protect, (req, res, next) => {
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            return res.status(400).json({ errors: errors.array() });
-        }
-        next();
-    },updateUserName);
-router.put('/users/:id/password',protect, param('id').notEmpty().withMessage('id is required').isMongoId().withMessage('invalid id'),
-body('password').notEmpty().withMessage('empty passowrd').matches(passwordRegex).withMessage('Password must be at least 10 characters and contain: 1 uppercase letter, 1 lowercase letter, 1 number, and 1 special character')
-,(req, res, next) => {
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            return res.status(400).json({ errors: errors.array() });
-        }
-        next();
-    },updateUserPassword);
-router.post('/users',protect, authorize,(req, res, next) => {
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            return res.status(400).json({ errors: errors.array() });
-        }
-        next();
-    },createUser);
-router.delete('/users/:id',protect, authorize, param('id').notEmpty().withMessage('id is required').isMongoId().withMessage('invalid id'),deleteUser);
-router.post('/assignments',protect, authorize, (req, res, next) => {
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            return res.status(400).json({ errors: errors.array() });
-        }
-        next();
-    },assignPatient);
-router.get('/assignments',protect,getAssignments);
-router.get('/assignments/:id',protect, param('id').notEmpty().withMessage('id is required').isMongoId().withMessage('invalid id'),getAssignmentById);
-router.delete('/assignments/:id', protect,authorize, param('id').notEmpty().withMessage('id is required').isMongoId().withMessage('invalid id'),deleteAssignment);
+const router = express.Router();
+router.use(protect);
+
+const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).{10,}$/;
+const validate = (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+  next();
+};
+
+router.get('/users', authorize, getAllUsers);
+router.get('/users/:id', [param('id').notEmpty().isMongoId()], validate, getUserById);
+router.put('/users/:id/role', authorize, [param('id').notEmpty().isMongoId()], validate, updateUserRole);
+router.put('/users/:id/email', validate, updateUserEmail);
+router.put('/users/:id/name', validate, updateUserName);
+router.put(
+  '/users/:id/password',
+  [param('id').notEmpty().isMongoId(), body('password').matches(passwordRegex)],
+  validate,
+  updateUserPassword
+);
+router.post('/users', authorize, validate, createUser);
+router.delete('/users/:id', authorize, [param('id').notEmpty().isMongoId()], deleteUser);
+
+router.post('/assignments', authorize, validate, assignPatient);
+router.get('/assignments', getAssignments);
+router.get('/assignments/:id', [param('id').notEmpty().isMongoId()], validate, getAssignmentById);
+router.delete('/assignments/:id', authorize, [param('id').notEmpty().isMongoId()], deleteAssignment);
 
 module.exports = router;
-

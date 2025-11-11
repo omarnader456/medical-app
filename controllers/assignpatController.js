@@ -5,69 +5,58 @@ const Patient = require('../models/patientModel');
 const asyncHandler = require('express-async-handler');
 
 exports.assignPatient = asyncHandler(async (req, res) => {
-    try {
-        const user = req.user;
-        if (user.role !== 'admin') {
-            return res.status(403).json({ message: 'Access denied' });
-        }
-        const { patientId, doctorId, nurseId } = req.body;
-        const patient = await Patient.findById(patientId);
-        const doctor = await Doctor.findById(doctorId);
-        const nurse = await Nurse.findById(nurseId);
-        if (!patient && !doctor && !nurse) {
-            return res.status(400).json({ message: 'Invalid IDs provided' });
-        }
-        const assignment = await Assignpat.create({
-            patient: patientId,
-            assigneddoc: doctorId,
-            assignednurse: nurseId
-        });
-        res.status(201).json(assignment);
-    } catch (error) {
-        res.status(500).json({ message: 'Server error' });
+    const user = req.user;
+    if (user.role !== 'admin') return res.status(403).json({ message: 'Access denied' });
+
+    const { patientId, doctorId, nurseId } = req.body;
+
+    const patient = await Patient.findById(patientId);
+    const doctor = await Doctor.findById(doctorId);
+    const nurse = await Nurse.findById(nurseId);
+
+    if (!patient || !doctor || !nurse) {
+        return res.status(400).json({ message: 'Invalid IDs provided' });
     }
+
+    const assignment = await Assignpat.create({
+        patient: patientId,
+        assigneddoc: doctorId,
+        assignednurse: nurseId
+    });
+
+    res.status(201).json(assignment);
 });
 
 exports.getAssignments = asyncHandler(async (req, res) => {
-    try {
-        const assignments = await Assignpat.find()
-            .populate('patient', 'name _id')
-            .populate('assigneddoc', 'name _id')
-            .populate('assignednurse', 'name _id');
-        res.status(200).json(assignments);
-    } catch (error) {
-        res.status(500).json({ message: 'Server error' });
-    }
+    const assignments = await Assignpat.find()
+        .populate('patient', 'name _id')
+        .populate('assigneddoc', 'name _id')
+        .populate('assignednurse', 'name _id');
+
+    res.status(200).json(assignments);
 });
+
 exports.getAssignmentById = asyncHandler(async (req, res) => {
-    try {
-        const assignment = await Assignpat.findById(req.params.id)
-            .populate('patient', 'name _id')
-            .populate('assigneddoc', 'name _id')
-            .populate('assignednurse', 'name _id');
-        if (!assignment) {
-            return res.status(404).json({ message: 'Assignment not found' });
-        }
-        res.status(200).json(assignment);
-    } catch (error) {
-        res.status(500).json({ message: 'Server error' });
-    }
+    const assignment = await Assignpat.findById(req.params.id)
+        .populate('patient', 'name _id')
+        .populate('assigneddoc', 'name _id')
+        .populate('assignednurse', 'name _id');
+
+    if (!assignment) return res.status(404).json({ message: 'Assignment not found' });
+
+    res.status(200).json(assignment);
 });
+
 exports.deleteAssignment = asyncHandler(async (req, res) => {
-    try {
-        const user = req.user;
-        if (user.role !== 'admin') {
-            return res.status(403).json({ message: 'Access denied' });
-        }
-        const assignment = await Assignpat.findByIdAndDelete(req.params.id);
-        if (!assignment) {
-            return res.status(404).json({ message: 'Assignment not found' });
-        }
-        res.status(200).json({ message: 'Assignment deleted successfully' });
-    } catch (error) {
-        res.status(500).json({ message: 'Server error' });
-    }
+    const user = req.user;
+    if (user.role !== 'admin') return res.status(403).json({ message: 'Access denied' });
+
+    const assignment = await Assignpat.findByIdAndDelete(req.params.id);
+    if (!assignment) return res.status(404).json({ message: 'Assignment not found' });
+
+    res.status(200).json({ message: 'Assignment deleted successfully' });
 });
+
 module.exports = {
     assignPatient: exports.assignPatient,
     getAssignments: exports.getAssignments,
