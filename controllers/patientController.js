@@ -1,8 +1,8 @@
-const User = require('../models/User');
-const Patient = require('../models/Patient');
-const Doctor = require('../models/Doctor');
-const Nurse = require('../models/Nurse');
-const Assignpat = require('../models/Assignpat');
+const User = require('../models/userModel');
+const Patient = require('../models/patientModel');
+const Doctor = require('../models/doctorModel');
+const Nurse = require('../models/nurseModel');
+const Assignpat = require('../models/assignpatModel');
 const asyncHandler = require('express-async-handler');
 
 
@@ -36,12 +36,12 @@ exports.createPatient = asyncHandler(async (req, res) => {
         if (user.role !== 'admin') {
             return res.status(403).json({ message: 'Access denied' });
         }
-        const {luser,name,age,diagnoses,medications} = req.body;
-        const luserid = await User.findById(luser);
-        if(!luserid || luser.role!=='patient') {
+        const {name,age,diagnoses,medications} = req.body;
+        const pat = await User.findOne({name:name});
+        if(!pat || pat.role!=='patient') {
             return res.status(400).json({ message: 'Invalid patient user ID' });
         }
-        const patient = await Patient.create({user:luser,name,age,diagnoses,medications});
+        const patient = await Patient.create({user:pat,name,age,diagnoses,medications});
         res.status(201).json(patient);
     } catch (error) {
         res.status(500).json({ message: 'Server error' });

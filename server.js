@@ -43,6 +43,12 @@ app.use((req, res, next) => {
     }
     next();
 });
+app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/admin', require('./routes/adminRoutes'));
+app.use('/api/doctor', require('./routes/doctorRoutes'));
+app.use('/api/nurse', require('./routes/nurseRoutes'));
+app.use('/api/patient', require('./routes/patientRoutes'));
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
     console.log(` Server running on port ${PORT}`);

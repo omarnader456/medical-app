@@ -59,8 +59,7 @@ exports.deleteAssignment = asyncHandler(async (req, res) => {
         if (user.role !== 'admin') {
             return res.status(403).json({ message: 'Access denied' });
         }
-       const id=req.body.id;
-        const assignment = await Assignpat.findByIdAndDelete(id);
+        const assignment = await Assignpat.findByIdAndDelete(req.params.id);
         if (!assignment) {
             return res.status(404).json({ message: 'Assignment not found' });
         }

@@ -18,7 +18,13 @@ router.use(protect);
 const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).{10,}$/;
 
 router.get('/users', protect,authorize, getAllUsers);
-router.get('/users/:id', protect,param('id').notEmpty().withMessage('require id in url').isMongoId().withMessage('invalid ID'),getUserById);
+router.get('/users/:id', protect,param('id').notEmpty().withMessage('require id in url').isMongoId().withMessage('invalid ID'),(req, res, next) => {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
+        }
+        next();
+    },getUserById);
 router.put('/users/:id/role', protect,authorize, param('id').notEmpty().withMessage('id is required').isMongoId().withMessage('invalid id'),(req, res, next) => {
         const errors = validationResult(req);
         if (!errors.isEmpty()) {

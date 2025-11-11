@@ -1,9 +1,8 @@
 const MedicaTimes = require('../models/meditimesModel');
 const asyncHandler = require('express-async-handler');
 const Patient = require('../models/patientModel');
-const Medication = require('../models/Medication');
+const Medication = require('../models/medicationModel');
 const {getAssignmentById} =require('./assignpatController');
-const asyncHandler = require('express-async-handler');
 
 
 
@@ -17,12 +16,11 @@ exports.createMedicaTime = asyncHandler(async (req, res) => {
     if (!assignmet){
         return res.status(404).json({message: 'Assignment not found'});
     }
-    patient=await Patientfindone({name:pat});
+    patient=await Patient.findOne({name:pat});
     if (assignmet.assigneddoc._id.toString()!==user._id.toString() && assignment.patient._id.toString()!==patient._id.toString()){
         return res.status(403).json({message: 'Access denied'});
     }
-    const patient=await Patient.findById(pat)
-    medication=await Medication.findById(med);
+    medication=await Medication.findOne({name:med});
 
     if(!patient){
         return res.status(404).json({message: 'Patient not found'});
@@ -61,10 +59,7 @@ exports.updateMedicaTime = asyncHandler(async (req, res) => {
     if (assignmet.assigneddoc._id.toString()!==user._id.toString()){
         return res.status(403).json({message: 'Access denied'});
     }
-    const {patient_name, time, description } = req.body;
-    const patient=await Patient.findById(patient_name)
-
-
+    const times = req.body.times;    
     const medicaTime = await MedicaTimes.findByIdAndUpdate(
         req.params.id,
         { times},
@@ -82,11 +77,6 @@ exports.deleteMedicaTime = asyncHandler(async (req, res) => {
     }
     const assignmet=await getAssignmentById(req.params.id);
     if (assignmet.assigneddoc._id.toString()!==user._id.toString()){
-        return res.status(403).json({message: 'Access denied'});
-    }
-    const pat_name=req.body.pat_name;
-    const patient=await Patient.findOne({name:pat_name});
-    if (assignmet.patient._id.toString()!==patient._id.toString()){
         return res.status(403).json({message: 'Access denied'});
     }
     const medicaTime = await MedicaTimes.findByIdAndDelete(req.params.id);

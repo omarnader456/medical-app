@@ -1,5 +1,5 @@
-const Medication = require('../models/Medication');
-const Doctor = require('../models/Doctor');
+const Medication = require('../models/medicationModel');
+const Doctor = require('../models/doctorModel');
 const asyncHandler = require('express-async-handler');
 
 exports.createMedication = asyncHandler(async (req, res) => {

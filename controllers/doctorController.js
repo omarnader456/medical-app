@@ -17,12 +17,12 @@ exports.createDoctor = asyncHandler(async (req, res) => {
         if (user.role !== 'admin') {
             return res.status(403).json({ message: 'Access denied' });
         }
-        const { luser, name, speciality } = req.body;
-        const luserid = await User.findById(luser);
-        if (!luserid || luserid.role !== 'doctor') {
+        const { name, speciality } = req.body;
+        const dctr = await User.findOne({name:name});
+        if (!dctr || dctr.role !== 'doctor') {
             return res.status(400).json({ message: 'Invalid doctor user ID' });
         }
-        const doctor = await Doctor.create({ user: luser, name, speciality });
+        const doctor = await Doctor.create({ user: dctr, name, speciality });
         res.status(201).json(doctor);
     } catch (error) {
         res.status(500).json({ message: 'Server error' });
@@ -30,12 +30,7 @@ exports.createDoctor = asyncHandler(async (req, res) => {
 });
 exports.getDoctorById = asyncHandler(async (req, res) => {
     try {
-        const name=req.body.name;
-        const id =await Doctor.findOne({name:name}).select('_id');
-        if (!id){
-            return res.status(404).json({message:'doctor no found'});
-        }
-        const doctor = await Doctor.findById(id);
+        const doctor = await Doctor.findById(req.params.id);
         if (!doctor) {
             return res.status(404).json({ message: 'Doctor not found' });
         }
@@ -51,12 +46,7 @@ exports.deleteDoctor = asyncHandler(async (req, res) => {
         if (user.role !== 'admin') {
             return res.status(403).json({ message: 'Access denied' });
         }
-        const name = req.body.name;
-        const id= await Doctor.findOne({name:name}).select('_id');
-        if (!id){
-            return res.status(404).json({message:'doctor not found'});
-        }
-        const doctor = await Doctor.findByIdAndDelete(id);
+        const doctor = await Doctor.findByIdAndDelete(req.params.id);
         if (!doctor) {
             return res.status(404).json({ message: 'Doctor not found' });
         }
@@ -71,12 +61,7 @@ exports.updateDoctor = asyncHandler(async (req, res) => {
         if (user.role !== 'admin') {
             return res.status(403).json({ message: 'Access denied' });
         }
-        const name=req.body.name;
-        const id=await Doctor.findOne({name:name}).select('_id');
-        if (!id){
-            res.status(404).json({message:'doctor not found'});
-        }
-        const doctor = await Doctor.findByIdAndUpdate(id, req.body, { new: true });
+        const doctor = await Doctor.findByIdAndUpdate(req.params.id, req.body, { new: true });
         if (!doctor) {
             return res.status(404).json({ message: 'Doctor not found' });
         }

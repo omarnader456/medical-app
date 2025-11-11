@@ -1,61 +1,35 @@
 
-exports.adminOnly = (req,res,next)=> {
-    if (req.user.role !== 'admin') {
-        return res.status(403).json({ message: 'Access denied' });
+
+// Checks if user role matches a single allowed role
+const roleCheck = (roles) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Not authenticated' });
+    }
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({ message: 'Access denied: insufficient role' });
     }
     next();
+  };
 };
 
-exports.nurseOnly = (req,res,next)=> {
-    if (req.user.role !== 'nurse') {
-        return res.status(403).json({ message: 'Access denied' });
-    }
-    next();
-};
+// Single-role checks
+const adminOnly = roleCheck(['admin']);
+const nurseOnly = roleCheck(['nurse']);
+const doctorsOnly = roleCheck(['doctor']);
 
-exports.doctorsOnly = (req,res,next) => {
-    if (req.user.role!=='doctor'){
-        return res.status(403).json({message: 'Acess denied'});
-    }
-    next();
-};
-
-exports.adminOrNurse = (req,res,next) => {
-    if (req.user.role !== 'admin' && req.user.role !== 'nurse') {
-        return res.status(403).json({ message: 'Access denied' });
-    }
-    next();
-};
-
-exports.adminOrDoctor = (req,res,next) => {
-    if (req.user.role !== 'admin' && req.user.role !== 'doctor') {
-        return res.status(403).json({ message: 'Access denied' });
-    }
-    next();
-};
-
-exports.nurseOrDoctor = (req,res,next) => {
-    if (req.user.role !== 'nurse' && req.user.role !== 'doctor') {
-        return res.status(403).json({ message: 'Access denied' });
-    }
-    next();
-};
-exports.allRoles = (req,res,next) => {
-    if (req.user.role !== 'admin' && req.user.role !== 'nurse' && req.user.role !== 'doctor') {
-        return res.status(403).json({ message: 'Access denied' });
-    }
-    next();
-};
+// Multi-role combinations
+const adminOrNurse = roleCheck(['admin', 'nurse']);
+const adminOrDoctor = roleCheck(['admin', 'doctor']);
+const nurseOrDoctor = roleCheck(['nurse', 'doctor']);
+const allRoles = roleCheck(['admin', 'nurse', 'doctor', 'patient']);
 
 module.exports = {
-    adminOnly,
-    nurseOnly,
-    doctorsOnly,
-    adminOrNurse,
-    adminOrDoctor,
-    nurseOrDoctor,
-    allRoles
+  adminOnly,
+  nurseOnly,
+  doctorsOnly,
+  adminOrNurse,
+  adminOrDoctor,
+  nurseOrDoctor,
+  allRoles
 };
-
-
-

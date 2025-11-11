@@ -1,5 +1,4 @@
 const User =require('../models/userModel');
-const { updateUserPassword } = require('./userController');
 const asyncHandler = require('express-async-handler');
 
 exports.getAllUsers = asyncHandler(async (req, res) => {
@@ -21,12 +20,7 @@ exports.deleteUser = asyncHandler(async (req, res) => {
         if (user.role !== 'admin') {
             return res.status(403).json({ message: 'Access denied' });
         }
-        const name = req.body.name;
-        const id =await User.findOne({name:name}).select('_id');
-        if (!id){
-            return res.status(404).json({ message: 'user not found' });
-        }
-        const deletedUser = await User.findByIdAndDelete(id);
+        const deletedUser = await User.findByIdAndDelete(req.params.id);
         if (!deletedUser) {
             return res.status(404).json({ message: 'User not found' });
         }
@@ -43,13 +37,8 @@ exports.updateUserRole = asyncHandler(async (req, res) => {
             return res.status(403).json({ message: 'Access denied' });
         }
         const { role } = req.body;
-        const name =req.body.name;
-        const id =await  User.findOne({name:name}).select('_id');
-        if (!id){
-            return res.status(404).json({message: 'User not found'});
-        }
         const updatedUser = await User.findByIdAndUpdate(
-            id,
+            req.params.id,
             { role },
             { new: true, fields: 'name email role' }
         ); 

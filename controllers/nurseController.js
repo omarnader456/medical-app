@@ -9,12 +9,12 @@ exports.createNurse = asyncHandler(async (req, res) => {
         if (user.role !== 'admin') {
             return res.status(403).json({ message: 'Access denied' });
         }
-        const { luser, name, department } = req.body;
-        const luserid = await User.findById(luser);
-        if (!luserid || luserid.role !== 'nurse') {
+        const { name, department } = req.body;
+        const nrs = await User.findOne({name:name});
+        if (!nrs|| nrs.role !== 'nurse') {
             return res.status(400).json({ message: 'Invalid nurse user ID' });
         }
-        const nurse = await Nurse.create({ user: luser, name, department });
+        const nurse = await Nurse.create({ user: nrs, name, department });
         res.status(201).json(nurse);
     } catch (error) {
         res.status(500).json({ message: 'Server error' });
