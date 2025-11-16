@@ -1,0 +1,76 @@
+<h1>Prescribe Medication Time</h1>
+
+<form id="prescribeForm">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <input type="hidden" id="assignId" value="<%= assignmentId %>">
+
+  <label>Patient Name:
+      <input type="text" name="pat" required>
+  </label><br>
+
+  <label>Medication Name:
+      <input type="text" name="med" required>
+  </label><br>
+
+  <label>Times:
+      <input type="text" name="times" required>
+  </label><br>
+
+  <button type="submit">Save & Route</button>
+</form>
+
+<div id="notify" style="
+    display:none;
+    padding:10px;
+    margin-top:10px;
+    color:white;
+    background:green;
+    border-radius:5px;">
+</div>
+
+<script>
+document.getElementById("prescribeForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const assignId = document.getElementById("assignId").value;
+    const csrf = '<%= csrfToken %>';
+
+    const data = {
+        pat: e.target.pat.value,
+        med: e.target.med.value,
+        times: e.target.times.value
+    };
+
+    const res = await fetch(`/api/doctor/medicatimes/${assignId}`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+            "Content-Type": "application/json",
+            "CSRF-Token": csrf
+        },
+        body: JSON.stringify(data)
+    });
+
+    const json = await res.json();
+
+    if (res.ok) {
+        showMsg("Medication time created!", false);
+        setTimeout(() => {
+            window.location = "/doctor/assignments";
+        }, 2000);
+    } else {
+        showMsg(json.message || "Error", true);
+    }
+});
+
+function showMsg(msg, error) {
+    const box = document.getElementById("notify");
+    box.style.display = "block";
+    box.style.background = error ? "red" : "green";
+    box.innerText = msg;
+
+    setTimeout(() => {
+        box.style.display = "none";
+    }, 10000);
+}
+</script>

@@ -107,7 +107,22 @@ router.get('/admin/selectuser/:id', protect, async (req, res) => {
 
 router.delete('/api/admin/users/:id', protect, deleteUser);
 
+router.get('/doctor/assignments', protect, async (req, res) => {
+    const response = await fetch(`${process.env.BASE_URL}/api/doctor/assignments`, {
+        headers: { Cookie: `token=${req.cookies.token}` }
+    });
 
+    const assignments = await response.json();
+
+    res.render('doctor/assignments', { assignments, csrfToken: req.csrfToken() });
+});
+
+router.get('/doctor/medicatimes/:id', protect, (req, res) => {
+    res.render('doctor/createMedTime', { 
+        assignmentId: req.params.id,
+        csrfToken: req.csrfToken()
+    });
+});
 
 
 

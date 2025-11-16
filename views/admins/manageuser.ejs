@@ -79,12 +79,12 @@
             showNotification("Updated successfully!");
         }
         else if (data.status==="already"){
-
+            showNotification("Already updated!", "warning");
         }
-        } else {
+        else {
             showNotification(data.message, true);
         }
-    );
+    });
 
 
     document.getElementById("deleteBtn").addEventListener("click", async () => {
