@@ -16,13 +16,14 @@ const validate = (req, res, next) => {
 
 router.get('/', getNurses);
 router.post('/', authorize, validate, createNurse);
+router.get('/medicatimes', getAllMedicaTimes);
+router.get('/assignments', getAssignments);
 router.get('/:id', [param('id').notEmpty().isMongoId()], validate, getNurseById);
 router.delete('/:id', authorize, deleteNurse);
 
-router.get('/assignments', getAssignments);
+
 router.get('/assignments/:id', [param('id').notEmpty().isMongoId()], validate, getAssignmentById);
 
-router.get('/medicatimes', getAllMedicaTimes);
 router.get('/medicatimes/:id', [param('id').notEmpty().isMongoId()], validate, getMedicaTimeById);
 
 module.exports = router;

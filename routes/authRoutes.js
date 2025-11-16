@@ -1,5 +1,5 @@
 const express = require('express');
-const { register, login } = require('../controllers/authController');
+const { register, login, verify2fa } = require('../controllers/authController');
 const { protect, authorize } = require('../middleware/authMiddleware');
 const { body, validationResult } = require('express-validator');
 
@@ -22,5 +22,12 @@ router.post(
   validate,
   register
 );
+
+router.post('/logout', (req, res) => {
+  res.clearCookie('token', { httpOnly: true, sameSite: 'lax' });
+  res.json({ message: 'Logged out' });
+});
+
+router.post('/2fa/verify',verify2fa);
 
 module.exports = router;

@@ -1,0 +1,14 @@
+<h1>All Users</h1>
+
+<ul>
+  <% users.forEach(usr => { %>
+    <li style="margin-bottom: 20px;">
+      <a href="/admin/selectuser/<%= usr._id %>">
+        <strong><%= usr.name %></strong>
+      </a>
+      <br>
+      <%= usr.email %><br>
+      <%= usr.role %>
+    </li>
+  <% }) %>
+</ul>

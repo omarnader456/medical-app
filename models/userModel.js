@@ -5,7 +5,13 @@ const userSchema = new mongoose.Schema({
     name:{type:String, required:true},
     email:{type:String, required:true, unique:true},
     password:{type:String, required:true},
-    role:{type:String, enum:['admin','doctor','nurse','patient']}
+    role:{type:String, enum:['admin','doctor','nurse','patient']},
+    twoFactor: {
+        enabled: { type: Boolean, default: false },
+        codeHash: String,
+        codeExpires: Date
+    }
+
 }, { timestamps: true });
 
 

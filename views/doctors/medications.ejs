@@ -1,0 +1,14 @@
+<h1>Medications</h1>
+<ul>
+  <% medications.forEach(med => { %>
+    <li><%= med.name %> - <%= med.medication.dosage %></li>
+    <li><%=med.description %></li>
+    <li><%=med.sideEffects %></li>
+  <% }) %>
+</ul>
+
+<h3>Links</h3>
+<ul>
+    <li><a href="/doctor/updatemedications">update Medications</a></li>
+    <li><a href="/doctor/dashboard">View Medication Times</a></li>
+</ul>

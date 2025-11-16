@@ -53,10 +53,15 @@ exports.updatePatient = asyncHandler(async (req, res) => {
 exports.deletePatient = asyncHandler(async (req, res) => {
     if (req.user.role !== 'admin') return res.status(403).json({ message: 'Access denied' });
 
-    const patient = await Patient.findByIdAndDelete(req.params.id);
+    const patient = await Patient.findById(req.params.id);
     if (!patient) return res.status(404).json({ message: 'Patient not found' });
 
-    res.status(200).json({ message: 'Patient deleted' });
+    await User.findByIdAndDelete(patient.user);
+    await Patient.findByIdAndDelete(patient._id);
+
+    res.status(200).json({ message: "patient + User deleted successfully" });
+
+  
 });
 
 module.exports = {

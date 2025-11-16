@@ -13,6 +13,28 @@ dotenv.config();
 const app = express();
 
 connectDB();
+const jwt = require("jsonwebtoken");
+const User = require("./models/userModel");
+
+app.use(async (req, res, next) => {
+    try {
+        const token = req.cookies?.token;
+        if (!token) {
+            res.locals.user = null;
+            return next();
+        }
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const user = await User.findById(decoded.id);
+        res.locals.user = user || null;
+        next();
+    } catch {
+        res.locals.user = null;
+        next();
+    }
+});
+
+const viewMiddleware = require('./middleware/viewMiddleware');
+app.use(viewMiddleware);
 
 app.use(helmet());
 app.use(morgan('combined'));
@@ -30,7 +52,12 @@ app.use((req, res, next) => {
   if (req.csrfToken) res.cookie('XSRF-TOKEN', req.csrfToken());
   next();
 });
+app.set("view engine", "ejs");
+app.set("views", path.join(__dirname, "views"));
+app.use('/public', express.static(path.join(__dirname, 'public')));
 
+
+app.use('/', require('./routes/webRoutes'));
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
 app.use('/api/doctor', require('./routes/doctorRoutes'));

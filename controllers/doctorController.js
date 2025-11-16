@@ -16,8 +16,14 @@ exports.createDoctor = asyncHandler(async (req, res) => {
     if (!dctr || dctr.role !== 'doctor') {
         return res.status(400).json({ message: 'Invalid doctor user ID' });
     }
+    const existingDoctor = await Doctor.findOne({ user: dctr._id });
+    if (existingDoctor) {
+        return res.status(400).json({ 
+            message: 'Doctor profile already exists for this user' 
+        });
+    }
 
-    const doctor = await Doctor.create({ user: dctr._id, name, speciality });
+    const doctor = await Doctor.create({ user: dctr._id, name, specialty:speciality });
     res.status(201).json(doctor);
 });
 
@@ -30,11 +36,14 @@ exports.getDoctorById = asyncHandler(async (req, res) => {
 exports.deleteDoctor = asyncHandler(async (req, res) => {
     const user = req.user;
     if (user.role !== 'admin') return res.status(403).json({ message: 'Access denied' });
-
-    const doctor = await Doctor.findByIdAndDelete(req.params.id);
+    const doctor = await Doctor.findById(req.params.id);
     if (!doctor) return res.status(404).json({ message: 'Doctor not found' });
 
-    res.status(200).json({ message: 'Doctor deleted successfully' });
+    await User.findByIdAndDelete(doctor.user);
+
+    await Doctor.findByIdAndDelete(doctor._id);
+
+    res.status(200).json({ message: "Doctor + User deleted successfully" });
 });
 
 exports.updateDoctor = asyncHandler(async (req, res) => {

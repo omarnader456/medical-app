@@ -1,0 +1,118 @@
+<h1>Manage User</h1>
+
+<p><strong>Name:</strong> <%= user.name %></p>
+<p><strong>Email:</strong> <%= user.email %></p>
+<p><strong>Role:</strong> <%= user.role %></p>
+
+<hr>
+
+<h3>update options</h3>
+
+<select id="updateOption" class="form-control">
+    <option value="">Choose option</option>
+    <option value="name">Update Name</option>
+    <option value="email">Update Email</option>
+    <option value="role">Update Role</option>
+</select>
+
+<div id="inputArea" style="margin-top:20px;"></div>
+
+<button id="updateBtn" class="btn btn-primary">Update User</button>
+
+<hr>
+
+<h3>Danger Zone</h3>
+<button id="deleteBtn" class="btn btn-danger">Delete User</button>
+
+<div id="notification" style="
+    display:none;
+    background:#4caf50;
+    color:white;
+    padding:10px;
+    margin-top:20px;
+    border-radius:5px;
+"></div>
+
+<script>
+    const userId = "<%= user._id %>";
+
+    document.getElementById("updateOption").addEventListener("change", function() {
+        const field = this.value;
+        const area = document.getElementById("inputArea");
+
+        if (!field) {
+            area.innerHTML = "";
+            return;
+        }
+
+        let label = field.charAt(0).toUpperCase() + field.slice(1);
+
+        area.innerHTML = `
+            <label>${label}</label>
+            <input id="updateField" class="form-control" placeholder="Enter new ${field}">
+        `;
+    });
+
+
+    document.getElementById("updateBtn").addEventListener("click", async () => {
+        const field = document.getElementById("updateOption").value;
+        const value = document.getElementById("updateField")?.value;
+
+        if (!field || !value) {
+            return showNotification("Please select an option and enter a value", true);
+        }
+
+        const body = {};
+        body[field] = value;
+
+        const response = await fetch(`/api/admin/users/${userId}`, {
+            method: "PATCH",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(body)
+        });
+
+        const data = await response.json();
+
+        if (data.status==="success") {
+            showNotification("Updated successfully!");
+        }
+        else if (data.status==="already"){
+
+        }
+        } else {
+            showNotification(data.message, true);
+        }
+    );
+
+
+    document.getElementById("deleteBtn").addEventListener("click", async () => {
+        if (!confirm("Are you sure you want to delete this user?")) return;
+
+        const response = await fetch(`/api/admin/users/${userId}`, {
+            method: "DELETE"
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            alert("User deleted");
+            window.location.href = "/admin/users";
+        } else {
+            showNotification(data.message, true);
+        }
+    });
+
+
+    function showNotification(msg, error = false) {
+        const box = document.getElementById("notification");
+        box.style.display = "block";
+        box.style.background = error ? "#e53935" : "#4caf50";
+        box.innerText = msg;
+
+        setTimeout(() => {
+            box.style.display = "none";
+        }, 10000);
+    }
+</script>

@@ -16,25 +16,41 @@ const validate = (req, res, next) => {
     next();
 };
 
+router.get('/assignments', getAssignments);
+router.get('/medications', validate, getAllMedications);
+router.post('/medications', validate, createMedication);
+router.get('/medicatimes', getAllMedicaTimes);
 router.get('/', getDoctors);
 router.post('/', authorize, validate, createDoctor);
+
+
 router.get('/:id', [param('id').notEmpty().withMessage('id is required').isMongoId().withMessage('invalid id')], validate, getDoctorById);
 router.put('/:id', authorize, [param('id').notEmpty().withMessage('id is required').isMongoId().withMessage('invalid id')], validate, updateDoctor);
 router.delete('/:id', authorize, [param('id').notEmpty().withMessage('id is required').isMongoId().withMessage('invalid id')], deleteDoctor);
 
-router.get('/medications', validate, getAllMedications);
-router.post('/medications', validate, createMedication);
+
 router.get('/medications/:id', [param('id').notEmpty().isMongoId()], validate, getMedicationById);
 router.put('/medications/:id', [param('id').notEmpty().isMongoId()], validate, updateMedication);
 router.delete('/medications/:id', [param('id').notEmpty().isMongoId()], deleteMedication);
 
-router.get('/medicatimes', getAllMedicaTimes);
-router.post('/medicatimes', doctorsOnly, validate, createMedicaTime);
+router.post('/medicatimes/:id', doctorsOnly, validate, createMedicaTime);
 router.get('/medicatimes/:id', [param('id').notEmpty().isMongoId()], validate, getMedicaTimeById);
 router.put('/medicatimes/:id', doctorsOnly, [param('id').notEmpty().isMongoId()], validate, updateMedicaTime);
-router.delete('/medicatimes/:id', doctorsOnly, [param('id').notEmpty().isMongoId()], validate, deleteMedicaTime);
+router.delete(
+  '/medicatimes/:id/:assignid',
+  (req, res, next) => {
+    console.log("Route Params:", req.params);
+    next();
+  },
+  doctorsOnly,
+  param('id').isMongoId(),
+  param('assignid').isMongoId(),
+  validate,
+  deleteMedicaTime
+);
 
-router.get('/assignments', getAssignments);
+
+
 router.get('/assignments/:id', [param('id').notEmpty().isMongoId()], validate, getAssignmentById);
 
 module.exports = router;

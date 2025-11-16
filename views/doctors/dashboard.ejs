@@ -1,0 +1,12 @@
+<h1>Doctor Dashboard</h1>
+
+<h2>Patient Info</h2>
+<p>Name: <%= patient.name %></p>
+<p>Age: <%= patient.age %></p>
+<p>Brief Diagnosis: <%= patient.diagnoses.join(', ') %></p>
+
+<h3>Links</h3>
+<ul>
+    <li><a href="/doctor/patient/medications">View Medications</a></li>
+    <li><a href="/doctor/patient/medTimes">View Medication Times</a></li>
+</ul>

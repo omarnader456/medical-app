@@ -1,0 +1,64 @@
+<h1>Patient ID</h1>
+
+<form id="patientForm">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <label>Patient ID:
+      <input type="text" name="Pid" required>
+  </label>
+  <button type="submit">Save & Route</button>
+</form>
+
+<div id="notify-box" 
+     style="
+        display:none;
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        padding: 15px 20px;
+        border-radius: 8px;
+        color: white;
+        font-weight: bold;
+        font-family: Arial;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+     ">
+</div>
+
+<script>
+function showNotification(message, type = "success") {
+    const box = document.getElementById("notify-box");
+    const colors = { success: "#28a745", error: "#dc3545", warning: "#ffc107" };
+    box.style.backgroundColor = colors[type] || colors.success;
+    box.innerText = message;
+    box.style.display = "block";
+    setTimeout(() => { box.style.display = "none"; }, 10000);
+}
+
+document.getElementById("patientForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const Pid = e.target.Pid.value;
+
+    try {
+        const res = await fetch(`/api/patient/${Pid}`, {
+            method: "GET",
+            credentials: "include",
+            headers: { "CSRF-Token": "<%= csrfToken %>" }
+        });
+
+        const json = await res.json();
+        console.log(json);
+
+        if (res.ok) {
+            showNotification("Saved successfully!", "success");
+        } else if (json.message === "already exists") {
+            showNotification("Already recorded!", "warning");
+        } else {
+            alert(json.message || "Invalid ID");
+            showNotification("Failed to save!", "error");
+        }
+    } catch (err) {
+        console.error(err);
+        alert("Request failed");
+    }
+});
+</script>

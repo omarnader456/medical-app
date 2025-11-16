@@ -1,0 +1,76 @@
+<form id="updateMedTimesForm">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+    <label>Times</label>
+    <input type="text" name="times">
+</form>
+
+<script>
+document.getElementById("updateMedTimesForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const form = e.target;
+    const medtmId = "<%= medicationtime._id %>";
+    const csrf = "<%= csrfToken %>";
+
+    const body = {
+        times: form.times.value || undefined
+    };
+
+    const res = await fetch(`/api/medicatimes/${medtmId}`, {
+        method: "PUT",
+        credentials: "include",
+        headers: {
+            "Content-Type": "application/json",
+            "CSRF-Token": csrf
+        },
+        body: JSON.stringify(body)
+    });
+
+    const json = await res.json();
+
+    if (json.status === "success") {
+        showNotify("Updated successfully!", "success");
+    }
+    else if (json.status === "already") {
+        showNotify("Already updated!", "warning");
+    }
+    else {
+        showNotify(json.message || "Update failed", "error");
+    }
+});
+</script>
+<div id="notify-box"
+     style="
+        display:none;
+        position:fixed;
+        top:20px;
+        right:20px;
+        z-index:9999;
+        padding:15px;
+        border-radius:8px;
+        color:white;
+        font-weight:bold;
+        box-shadow:0 3px 10px rgba(0,0,0,0.3);
+     ">
+</div>
+
+<script>
+function showNotify(message, type="success") {
+    const box = document.getElementById("notify-box");
+
+    const colors = {
+        success: "#28a745",
+        error: "#dc3545",
+        warning: "#ffc107"
+    };
+
+    box.style.background = colors[type] || colors.success;
+    box.innerText = message;
+    box.style.display = "block";
+
+    setTimeout(() => {
+        box.style.display = "none";
+    }, 10000);
+}
+</script>

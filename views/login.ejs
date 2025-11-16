@@ -1,1 +1,41 @@
+<% layout('layout') -%>
+
+<h1>Login</h1>
+
+<form id="loginForm" method="POST" action="/api/auth/login">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <label>Email: <input type="email" name="email" required></label>
+  <label>Password: <input type="password" name="password" required></label>
+  <button type="submit">Login</button>
+</form>
+
+<script>
+document.getElementById('loginForm').addEventListener('submit', async (er) => {
+  er.preventDefault();
+  const form = er.target;
+  const data = {
+    email: form.email.value,
+    password: form.password.value,
+  };
+
+  const res = await fetch('/api/auth/login', {
+    method: 'POST',
+    credentials: 'include',         
+    headers: { 'Content-Type': 'application/json',
+               'CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || '<%= csrfToken %>' },
+    body: JSON.stringify(data)
+  });
+
+  const json = await res.json();
+  if (json.requires2fa) {
+    window.location = '/2fa';
+    return;
+  }
+  if (res.ok) {
+    window.location = '/dashboard';
+  } else {
+    alert(json.message || 'Login failed');
+  }
+});
+</script>
 

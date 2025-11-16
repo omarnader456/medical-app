@@ -28,11 +28,13 @@ exports.getNurseById = asyncHandler(async (req, res) => {
 exports.deleteNurse = asyncHandler(async (req, res) => {
     const user = req.user;
     if (user.role !== 'admin') return res.status(403).json({ message: 'Access denied' });
-
-    const nurse = await Nurse.findByIdAndDelete(req.params.id);
+    const nurse=Nurse.findById(req.params.id);
     if (!nurse) return res.status(404).json({ message: 'Nurse not found' });
+     await User.findByIdAndDelete(nurse.user);
+    await Nurse.findByIdAndDelete(nurse._id);
 
-    res.status(200).json({ message: 'Nurse deleted successfully' });
+    res.status(200).json({ message: "Nurse + User deleted successfully" });
+
 });
 
 module.exports = {

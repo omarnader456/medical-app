@@ -28,6 +28,9 @@ exports.assignPatient = asyncHandler(async (req, res) => {
 });
 
 exports.getAssignments = asyncHandler(async (req, res) => {
+    console.log("Params:", req.params);
+    console.log("Path:", req.path);
+    console.log("Original URL:", req.originalUrl);
     const assignments = await Assignpat.find()
         .populate('patient', 'name _id')
         .populate('assigneddoc', 'name _id')

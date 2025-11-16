@@ -54,8 +54,11 @@ exports.createUser = asyncHandler(async (req, res) => {
 });
 
 exports.updateUserEmail = asyncHandler(async (req, res) => {
-    if (req.user.id !== req.params.id) return res.status(403).json({ message: 'Access denied' });
-
+    console.log('req.user:', req.user);
+    console.log('req.params.id:', req.params.id);
+    if (req.user._id.toString() !== req.params.id.toString()) {
+        return res.status(403).json({ message: 'Access denied' });
+    }
     const { email } = req.body;
     const updatedUser = await User.findByIdAndUpdate(
         req.params.id,
@@ -93,6 +96,48 @@ exports.updateUserPassword = asyncHandler(async (req, res) => {
     res.status(200).json({ message: 'Password updated successfully' });
 });
 
+exports.updateUser = asyncHandler(async (req, res) => {
+
+    const { id } = req.params.id;
+    const user = await User.findById(id);
+    if (!user) {
+        return res.status(404).json({ status: "error", message: 'user not found' });
+    }
+    const { name, email, role} = req.body;
+    const updates = {};
+    const changedFields = [];
+    if (name !== undefined && name.trim() !== user.name) {
+        updates.name = name.trim();
+        changedFields.push("name");
+    }
+    if (email !== undefined && email.trim() !== user.email) {
+        updates.email = email.trim();
+        changedFields.push("email");
+    }
+    if (role !== undefined && role.trim() !== user.role) {
+        updates.role = role.trim();
+        changedFields.push("role");
+    }
+    if (changedFields.length === 0) {
+        return res.status(200).json({
+            status: "already",
+            message: "No changes detected. Already updated.",
+        });
+    }
+    const updt = await Medication.findByIdAndUpdate(
+        id,
+        updates,
+        { new: true }
+    );
+
+    return res.status(200).json({
+        status: "success",
+        message: "Medication updated successfully",
+        updated
+    });
+});
+
+
 module.exports = {
     getAllUsers: exports.getAllUsers,
     deleteUser: exports.deleteUser,
@@ -101,5 +146,6 @@ module.exports = {
     createUser: exports.createUser,
     updateUserEmail: exports.updateUserEmail,
     updateUserName: exports.updateUserName,
-    updateUserPassword: exports.updateUserPassword
+    updateUserPassword: exports.updateUserPassword,
+    updateUser:exports.updateUser
 };
