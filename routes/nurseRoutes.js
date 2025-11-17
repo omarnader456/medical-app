@@ -1,6 +1,6 @@
 const express = require('express');
 const { getNurses, getNurseById, createNurse, deleteNurse } = require('../controllers/nurseController');
-const { getAssignments, getAssignmentById } = require('../controllers/assignpatController');
+const { getAssignments, getAssignmentById,getnurseassignment } = require('../controllers/assignpatController');
 const { getAllMedicaTimes, getMedicaTimeById } = require('../controllers/meditimesController');
 const { protect, authorize } = require('../middleware/authMiddleware');
 const { param, validationResult } = require('express-validator');
@@ -18,6 +18,7 @@ router.get('/', getNurses);
 router.post('/', authorize, validate, createNurse);
 router.get('/medicatimes', getAllMedicaTimes);
 router.get('/assignments', getAssignments);
+router.get('/assignment',getnurseassignment);
 router.get('/:id', [param('id').notEmpty().isMongoId()], validate, getNurseById);
 router.delete('/:id', authorize, deleteNurse);
 

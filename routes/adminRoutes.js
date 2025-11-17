@@ -1,5 +1,5 @@
 const express = require('express');
-const { getAllUsers, deleteUser, updateUserRole, getUserById, createUser, updateUserEmail, updateUserName, updateUserPassword,updateUser} = require('../controllers/adminController');
+const { getAllUsers, deleteUser, updateUserRole, getUserById, createUser, updateUserEmail, updateUserName, updateUserPassword,updateUser,updateusr} = require('../controllers/adminController');
 const { assignPatient, getAssignments, getAssignmentById, deleteAssignment } = require('../controllers/assignpatController');
 const { protect, authorize } = require('../middleware/authMiddleware');
 const { param, body, validationResult } = require('express-validator');
@@ -18,17 +18,19 @@ router.get('/users', authorize, getAllUsers);
 router.post('/users', authorize, validate, createUser);
 router.post('/assignments', authorize, validate, assignPatient);
 router.get('/assignments', getAssignments);
+router.put('/users/update',protect,updateusr);
+router.put(
+  '/users/password',
+  [param('id').notEmpty().isMongoId(), body('password').matches(passwordRegex)],
+  validate,
+  updateUserPassword
+);
 router.get('/users/:id', [param('id').notEmpty().isMongoId()], validate, getUserById);
 router.put('/users/:id/role', authorize, [param('id').notEmpty().isMongoId()], validate, updateUserRole);
 router.put('/users/:id/email', validate, updateUserEmail);
 router.put('/users/:id/name', validate, updateUserName);
 router.put('/user/:id/update',protect,updateUser);
-router.put(
-  '/users/:id/password',
-  [param('id').notEmpty().isMongoId(), body('password').matches(passwordRegex)],
-  validate,
-  updateUserPassword
-);
+
 
 router.delete('/users/:id', authorize, [param('id').notEmpty().isMongoId()], deleteUser);
 

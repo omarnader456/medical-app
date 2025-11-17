@@ -1,0 +1,143 @@
+<h1>Update Account</h1>
+
+<p><strong>Name:</strong> <%= user.name %></p>
+<p><strong>Email:</strong> <%= user.email %></p>
+<p><strong>Role:</strong> <%= user.role %></p>
+
+<hr>
+
+<h3>Update Options</h3>
+
+<select id="updateaccount" class="form-control">
+    <option value="">Choose option</option>
+    <option value="name">Update Name</option>
+    <option value="email">Update Email</option>
+    <option value="role">Update Role</option>
+    <option value="password">Update Password</option>
+</select>
+
+<div id="inputArea" style="margin-top:20px;"></div>
+
+<button id="updateBtn" class="btn btn-primary">Update User</button>
+
+<hr>
+
+<div id="notification" style="
+    display:none;
+    background:#4caf50;
+    color:white;
+    padding:10px;
+    margin-top:20px;
+    border-radius:5px;
+"></div>
+
+<script>
+    const userId = "<%= user._id %>";
+
+    document.getElementById("updateaccount").addEventListener("change", function () {
+        const field = this.value;
+        const area = document.getElementById("inputArea");
+
+        if (!field) {
+            area.innerHTML = "";
+            return;
+        }
+
+        if (field === "password") {
+            area.innerHTML = `
+                <label>New Password</label>
+                <input id="updatePassword" class="form-control" type="password" placeholder="Enter new password">
+
+                <label>Confirm Password</label>
+                <input id="confirmPassword" class="form-control" type="password" placeholder="Confirm new password">
+            `;
+            return;
+        }
+
+        let label = field.charAt(0).toUpperCase() + field.slice(1);
+        area.innerHTML = `
+            <label>${label}</label>
+            <input id="updateField" class="form-control" placeholder="Enter new ${field}">
+        `;
+    });
+
+
+
+    document.getElementById("updateBtn").addEventListener("click", async () => {
+        const field = document.getElementById("updateaccount").value;
+
+        if (!field) {
+            return showNotification("Please select an option!", true);
+        }
+
+
+        if (field === "password") {
+            const pass = document.getElementById("updatePassword")?.value;
+            const confirmPass = document.getElementById("confirmPassword")?.value;
+
+            if (!pass || !confirmPass) {
+                return showNotification("Please enter and confirm your new password", true);
+            }
+
+            if (pass !== confirmPass) {
+                return showNotification("Passwords do not match", true);
+            }
+
+            const response = await fetch(`/api/admin/users/password`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ password: pass })
+            });
+
+            const data = await response.json();
+
+            if (data.status === "success") {
+                return showNotification("Password updated successfully!");
+            }
+
+            return showNotification(data.message || "Password update failed", true);
+        }
+
+
+
+        const value = document.getElementById("updateField")?.value;
+
+        if (!value) {
+            return showNotification("Please enter a value", true);
+        }
+
+        const body = {};
+        body[field] = value;
+
+        const response = await fetch(`/api/admin/users/update`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body)
+        });
+
+        const data = await response.json();
+
+        if (data.status === "success") {
+            showNotification("Updated successfully!");
+        }
+        else if (data.status === "already") {
+            showNotification("Already updated!", "warning");
+        }
+        else {
+            showNotification(data.message, true);
+        }
+    });
+
+
+
+    function showNotification(msg, error = false) {
+        const box = document.getElementById("notification");
+        box.style.display = "block";
+        box.style.background = error ? "#e53935" : "#4caf50";
+        box.innerText = msg;
+
+        setTimeout(() => {
+            box.style.display = "none";
+        }, 10000);
+    }
+</script>

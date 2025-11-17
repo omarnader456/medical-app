@@ -59,10 +59,24 @@ exports.deleteAssignment = asyncHandler(async (req, res) => {
 
     res.status(200).json({ message: 'Assignment deleted successfully' });
 });
+exports.getpatassignment=asyncHandler(async(req,res)=>{
+    const user=req.user;
+    const assignment=await Assignpat.find({patient:user._id});
+    if (!assignment) return res.status(404).json({ message: 'Assignment not found' });
+    res.status(200).json(assignment);
+})
+exports.getnurseassignment=asyncHandler(async(req,res)=>{
+    const user=req.user;
+    const assignment=await Assignpat.find({ assignednurse:user._id});
+    if (!assignment) return res.status(404).json({ message: 'Assignment not found' });
+    res.status(200).json(assignment);
+})
 
 module.exports = {
     assignPatient: exports.assignPatient,
     getAssignments: exports.getAssignments,
     getAssignmentById: exports.getAssignmentById,
-    deleteAssignment: exports.deleteAssignment
+    deleteAssignment: exports.deleteAssignment,
+    getpatassignment: exports.getpatassignment,
+    getnurseassignment:exports.getnurseassignment
 };

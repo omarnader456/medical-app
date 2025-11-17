@@ -85,12 +85,8 @@ exports.updateUserName = asyncHandler(async (req, res) => {
 });
 
 exports.updateUserPassword = asyncHandler(async (req, res) => {
-    if (req.user.id !== req.params.id) return res.status(403).json({ message: 'Access denied' });
-
+    const updatedUser=req.user;
     const { password } = req.body;
-    const updatedUser = await User.findById(req.params.id);
-    if (!updatedUser) return res.status(404).json({ message: 'User not found' });
-
     updatedUser.password = password;
     await updatedUser.save();
     res.status(200).json({ message: 'Password updated successfully' });
@@ -132,11 +128,49 @@ exports.updateUser = asyncHandler(async (req, res) => {
 
     return res.status(200).json({
         status: "success",
-        message: "Medication updated successfully",
+        message: "User updated successfully",
         updated
     });
 });
+exports.updateusr=asyncHandler(async(req,res)=>{
+    const user = await req.user;
+    id=user._id;
+    if (!user) {
+        return res.status(404).json({ status: "error", message: 'user not found' });
+    }
+    const { name, email, role} = req.body;
+    const updates = {};
+    const changedFields = [];
+    if (name !== undefined && name.trim() !== user.name) {
+        updates.name = name.trim();
+        changedFields.push("name");
+    }
+    if (email !== undefined && email.trim() !== user.email) {
+        updates.email = email.trim();
+        changedFields.push("email");
+    }
+    if (role !== undefined && role.trim() !== user.role) {
+        updates.role = role.trim();
+        changedFields.push("role");
+    }
+    if (changedFields.length === 0) {
+        return res.status(200).json({
+            status: "already",
+            message: "No changes detected. Already updated.",
+        });
+    }
+    const updt = await Medication.findByIdAndUpdate(
+        id,
+        updates,
+        { new: true }
+    );
 
+    return res.status(200).json({
+        status: "success",
+        message: "User updated successfully",
+        updated
+    });
+});
 
 module.exports = {
     getAllUsers: exports.getAllUsers,
@@ -147,5 +181,6 @@ module.exports = {
     updateUserEmail: exports.updateUserEmail,
     updateUserName: exports.updateUserName,
     updateUserPassword: exports.updateUserPassword,
-    updateUser:exports.updateUser
+    updateUser:exports.updateUser,
+    updateusr:exports.updateusr
 };

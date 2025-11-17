@@ -17,6 +17,24 @@ const validate = (req, res, next) => {
 };
 
 router.get('/assignments', getAssignments);
+router.get('/assignments', protect, async (req, res) => {
+    try {
+        const doctorId = req.headers["x-user-id"];
+
+        if (!doctorId)
+            return res.status(400).json({ message: "User ID missing" });
+
+        const assignments = await Assignment.find({
+            assigneddoc: doctorId
+        }).populate("patient");
+
+        res.json(assignments);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Server error" });
+    }
+});
+
 router.get('/medications', validate, getAllMedications);
 router.post('/medications', validate, createMedication);
 router.get('/medicatimes', getAllMedicaTimes);

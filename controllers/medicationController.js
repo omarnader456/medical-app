@@ -27,7 +27,7 @@ exports.updateMedication = asyncHandler(async (req, res) => {
     if (user.role !== 'doctor' && user.role !== 'admin') {
         return res.status(403).json({ status: "error", message: 'Access denied' });
     }
-    const { id } = req.params.id;
+    const id = req.params.id;
     const medication = await Medication.findById(id);
     if (!medication) {
         return res.status(404).json({ status: "error", message: 'Medication not found' });

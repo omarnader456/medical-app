@@ -7,6 +7,7 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const dotenv = require('dotenv');
+const path=require('path');
 
 dotenv.config();
 
@@ -56,6 +57,8 @@ app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 app.use('/public', express.static(path.join(__dirname, 'public')));
 
+const errorHandler = require('../middleware/errorHandler');
+app.use(errorHandler);
 
 app.use('/', require('./routes/webRoutes'));
 app.use('/api/auth', require('./routes/authRoutes'));
@@ -74,5 +77,17 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+app.use("/api/", rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    message: { message: "Too many requests, try again later" }
+}));
+res.cookie("token", token, {
+    httpOnly: true,
+    secure: true,
+    sameSite: "strict",
+    maxAge: 24 * 60 * 60 * 1000
+});
+
 
 module.exports = app;
