@@ -1,14 +1,14 @@
 const express = require('express');
 const { getDoctors, getDoctorById, createDoctor, updateDoctor, deleteDoctor } = require('../controllers/doctorController');
-const { adminOnly, nurseOnly, doctorsOnly } = require('../middleware/roleMiddleware');
+const { doctorsOnly } = require('../middleware/roleMiddleware');
 const { protect, authorize } = require('../middleware/authMiddleware');
 const { getAllMedications, createMedication, getMedicationById, updateMedication, deleteMedication } = require('../controllers/medicationController');
 const { deleteMedicaTime, updateMedicaTime, getMedicaTimeById, createMedicaTime, getAllMedicaTimes } = require('../controllers/meditimesController');
 const { getAssignments, getAssignmentById } = require('../controllers/assignpatController');
-const { param, validationResult } = require('express-validator');
+const { param, validationResult, body } = require('express-validator');
 
 const router = express.Router();
-router.use(protect);
+router.use(protect); 
 
 const validate = (req, res, next) => {
     const errors = validationResult(req);
@@ -16,59 +16,65 @@ const validate = (req, res, next) => {
     next();
 };
 
-router.get('/assignments', getAssignments);
-router.get('/assignments', protect, async (req, res) => {
-    try {
-        const doctorId = req.headers["x-user-id"];
 
-        if (!doctorId)
-            return res.status(400).json({ message: "User ID missing" });
-
-        const assignments = await Assignment.find({
-            assigneddoc: doctorId
-        }).populate("patient");
-
-        res.json(assignments);
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: "Server error" });
-    }
-});
-
-router.get('/medications', validate, getAllMedications);
-router.post('/medications', validate, createMedication);
-router.get('/medicatimes', getAllMedicaTimes);
 router.get('/', getDoctors);
-router.post('/', authorize, validate, createDoctor);
+router.post('/', authorize, validate, createDoctor); 
+router.get('/:id', [param('id').isMongoId()], validate, getDoctorById);
+router.put('/:id', authorize, [param('id').isMongoId()], validate, updateDoctor); 
+router.delete('/:id', authorize, [param('id').isMongoId()], deleteDoctor); 
 
 
-router.get('/:id', [param('id').notEmpty().withMessage('id is required').isMongoId().withMessage('invalid id')], validate, getDoctorById);
-router.put('/:id', authorize, [param('id').notEmpty().withMessage('id is required').isMongoId().withMessage('invalid id')], validate, updateDoctor);
-router.delete('/:id', authorize, [param('id').notEmpty().withMessage('id is required').isMongoId().withMessage('invalid id')], deleteDoctor);
+router.get('/assignments', doctorsOnly, getAssignments); 
+router.get('/assignments/:id', doctorsOnly, [param('id').isMongoId()], validate, getAssignmentById);
 
 
-router.get('/medications/:id', [param('id').notEmpty().isMongoId()], validate, getMedicationById);
-router.put('/medications/:id', [param('id').notEmpty().isMongoId()], validate, updateMedication);
-router.delete('/medications/:id', [param('id').notEmpty().isMongoId()], deleteMedication);
-
-router.post('/medicatimes/:id', doctorsOnly, validate, createMedicaTime);
-router.get('/medicatimes/:id', [param('id').notEmpty().isMongoId()], validate, getMedicaTimeById);
-router.put('/medicatimes/:id', doctorsOnly, [param('id').notEmpty().isMongoId()], validate, updateMedicaTime);
+router.get('/medications', doctorsOnly, getAllMedications);
+router.post(
+    '/medications', 
+    doctorsOnly, 
+    [body('name').notEmpty(), body('dosage').notEmpty()],
+    validate, 
+    createMedication
+);
+router.get('/medications/:id', doctorsOnly, [param('id').isMongoId()], validate, getMedicationById);
+router.put(
+    '/medications/:id', 
+    doctorsOnly, 
+    [param('id').isMongoId()], 
+    validate, 
+    updateMedication
+);
 router.delete(
-  '/medicatimes/:id/:assignid',
-  (req, res, next) => {
-    console.log("Route Params:", req.params);
-    next();
-  },
-  doctorsOnly,
-  param('id').isMongoId(),
-  param('assignid').isMongoId(),
-  validate,
-  deleteMedicaTime
+    '/medications/:id', 
+    doctorsOnly, 
+    [param('id').isMongoId()], 
+    deleteMedication
 );
 
 
+router.get('/medicatimes', doctorsOnly, getAllMedicaTimes); 
+router.post(
+    '/medicatimes/:assignmentId', 
+    doctorsOnly, 
+    [param('assignmentId').isMongoId(), body('medicationId').isMongoId(), body('times').notEmpty()],
+    validate, 
+    createMedicaTime
+);
+router.get('/medicatimes/:id', doctorsOnly, [param('id').isMongoId()], validate, getMedicaTimeById);
+router.put(
+    '/medicatimes/:id', 
+    doctorsOnly, 
+    [param('id').isMongoId(), body('times').notEmpty()], 
+    validate, 
+    updateMedicaTime
+);
 
-router.get('/assignments/:id', [param('id').notEmpty().isMongoId()], validate, getAssignmentById);
+router.delete(
+    '/medicatimes/:id/:assignid',
+    doctorsOnly,
+    [param('id').isMongoId(), param('assignid').isMongoId()],
+    validate,
+    deleteMedicaTime
+);
 
 module.exports = router;

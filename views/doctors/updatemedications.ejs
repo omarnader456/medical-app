@@ -1,20 +1,37 @@
+<h1>Update Medication: <%= medication.name %></h1>
+
 <form id="updateMedForm">
     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
 
     <label>Name</label>
-    <input type="text" name="name">
+    <input type="text" name="name" value="<%= medication.name %>">
 
     <label>Description</label>
-    <textarea name="description"></textarea>
+    <textarea name="description"><%= medication.description %></textarea>
 
-    <label>Side Effects</label>
-    <textarea name="sideEffects"></textarea>
+    <label>Side Effects (Comma Separated)</label>
+    <textarea name="sideEffects"><%= medication.sideEffects.join(', ') %></textarea> 
 
     <label>Dosage</label>
-    <textarea name="dosage"></textarea>
+    <textarea name="dosage"><%= medication.dosage %></textarea>
 
     <button type="submit">Update Medication</button>
 </form>
+
+<div id="notify-box"
+      style="
+        display:none;
+        position:fixed;
+        top:20px;
+        right:20px;
+        z-index:9999;
+        padding:15px;
+        border-radius:8px;
+        color:white;
+        font-weight:bold;
+        box-shadow:0 3px 10px rgba(0,0,0,0.3);
+      ">
+</div>
 
 <script>
 document.getElementById("updateMedForm").addEventListener("submit", async (e) => {
@@ -25,13 +42,15 @@ document.getElementById("updateMedForm").addEventListener("submit", async (e) =>
     const csrf = "<%= csrfToken %>";
 
     const body = {
-        name: form.name.value || undefined,
-        description: form.description.value || undefined,
-        sideEffects: form.sideEffects.value || undefined,
-        dosage: form.dosage.value || undefined,
+        // Only send fields that have a value
+        name: form.name.value,
+        description: form.description.value,
+        sideEffects: form.sideEffects.value,
+        dosage: form.dosage.value,
     };
 
-    const res = await fetch(`/api/medications/${medId}`, {
+    // FIX: Corrected API path to include /doctor
+    const res = await fetch(`/api/doctor/medications/${medId}`, {
         method: "PUT",
         credentials: "include",
         headers: {
@@ -44,8 +63,8 @@ document.getElementById("updateMedForm").addEventListener("submit", async (e) =>
     const json = await res.json();
 
     if (res.ok && json.status === "success") {
- 
         showNotify("Updated successfully!", "success");
+        // Update page with new values after success (optional)
     }
     else if (json.status === "already") {
         showNotify("Already updated!", "warning");
@@ -54,23 +73,7 @@ document.getElementById("updateMedForm").addEventListener("submit", async (e) =>
         showNotify(json.message || "Update failed", "error");
     }
 });
-</script>
-<div id="notify-box"
-     style="
-        display:none;
-        position:fixed;
-        top:20px;
-        right:20px;
-        z-index:9999;
-        padding:15px;
-        border-radius:8px;
-        color:white;
-        font-weight:bold;
-        box-shadow:0 3px 10px rgba(0,0,0,0.3);
-     ">
-</div>
 
-<script>
 function showNotify(message, type="success") {
     const box = document.getElementById("notify-box");
 

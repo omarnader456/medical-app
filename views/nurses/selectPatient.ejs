@@ -1,27 +1,29 @@
 <h1>Select a Patient</h1>
 <ul>
-  <% assignments.forEach(a => { %>
-    <li>
-      <%= a.patient.name %> 
-      <button onclick="selectPatient('<%= a.patient._id %>')">Select</button>
-    </li>
-  <% }) %>
+    <% assignments.forEach(a => { %>
+        <li>
+            <%= a.patient.name %> 
+            <button onclick="selectPatient('<%= a.patient._id %>')">Select</button>
+        </li>
+    <% }) %>
 </ul>
 
 <script>
 async function selectPatient(pid) {
-    const res = await fetch('/set-patient', {
+    const csrf = document.querySelector('meta[name="csrf-token"]').content;
+
+    const res = await fetch('/set-patient', { 
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'CSRF-Token': '<%= csrfToken %>'
+            'CSRF-Token': csrf
         },
         body: JSON.stringify({ patientId: pid }),
         credentials: 'include'
     });
 
     if (res.ok) {
-        window.location.href = '/nurses/dashboard';
+        window.location.href = '/nurse/dashboard'; 
     } else {
         const json = await res.json();
         alert(json.message);

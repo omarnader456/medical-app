@@ -7,15 +7,27 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const dotenv = require('dotenv');
-const path=require('path');
+const path = require('path');
+const jwt = require("jsonwebtoken");
+const User = require("./models/userModel");
 
 dotenv.config();
 
 const app = express();
 
 connectDB();
-const jwt = require("jsonwebtoken");
-const User = require("./models/userModel");
+
+app.use(helmet());
+app.use(morgan('combined'));
+app.use(cookieParser());
+app.use(express.json()); 
+
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    message: { message: "Too many requests, try again later" }
+});
+app.use(limiter);
 
 app.use(async (req, res, next) => {
     try {
@@ -25,40 +37,43 @@ app.use(async (req, res, next) => {
             return next();
         }
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        const user = await User.findById(decoded.id);
+        const user = await User.findById(decoded.id).select('-password');
+        
+        if (!user) {
+            res.clearCookie('token'); 
+        }
+        
         res.locals.user = user || null;
+        req.user = user; 
         next();
-    } catch {
+    } catch (error) {
+        res.clearCookie('token'); 
         res.locals.user = null;
         next();
     }
 });
 
+const csrfProtection = csurf({ 
+    cookie: true,
+   
+});
+
+app.use(csrfProtection, (req, res, next) => {
+    res.locals.csrfToken = req.csrfToken(); 
+    res.cookie('XSRF-TOKEN', req.csrfToken(), { 
+        httpOnly: false,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+    });
+    next();
+});
+
 const viewMiddleware = require('./middleware/viewMiddleware');
 app.use(viewMiddleware);
 
-app.use(helmet());
-app.use(morgan('combined'));
-app.use(express.json());
-app.use(cookieParser());
-
-const csrfProtection = csurf({ cookie: true });
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, 
-  max: 100
-});
-app.use(limiter);
-
-app.use((req, res, next) => {
-  if (req.csrfToken) res.cookie('XSRF-TOKEN', req.csrfToken());
-  next();
-});
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 app.use('/public', express.static(path.join(__dirname, 'public')));
-
-const errorHandler = require('../middleware/errorHandler');
-app.use(errorHandler);
 
 app.use('/', require('./routes/webRoutes'));
 app.use('/api/auth', require('./routes/authRoutes'));
@@ -67,27 +82,22 @@ app.use('/api/doctor', require('./routes/doctorRoutes'));
 app.use('/api/nurse', require('./routes/nurseRoutes'));
 app.use('/api/patient', require('./routes/patientRoutes'));
 
+const errorHandler = require('./middleware/errorHandler');
+app.use(errorHandler); 
+
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(err.status || 500).json({ message: err.message || 'Server Error' });
+    if (err.code === 'EBADCSRFTOKEN') {
+        return res.status(403).json({ message: 'Invalid CSRF token' });
+    }
+    console.error(err.stack);
+    res.status(err.status || 500).json({ message: err.message || 'Server Error' });
 });
+
 app.use((req, res) => res.status(404).json({ message: 'Route not found' }));
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+    console.log(`Server running on port ${PORT}`);
 });
-app.use("/api/", rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 100,
-    message: { message: "Too many requests, try again later" }
-}));
-res.cookie("token", token, {
-    httpOnly: true,
-    secure: true,
-    sameSite: "strict",
-    maxAge: 24 * 60 * 60 * 1000
-});
-
 
 module.exports = app;

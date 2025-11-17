@@ -1,15 +1,19 @@
-<h1>Medications</h1>
+<h1>Medications for Patient: (Selected)</h1>
+<p>This list shows medications currently associated with this patient's treatment regimen (via MediTimes).</p>
 <ul>
-  <% medications.forEach(med => { %>
-    <li><strong><%= med.name %></strong></li>
-    <li><%= med.description %></li>
-    <li><%= med.sideEffects %></li>
-    <li><%= med.dosage %></li>
+    <% if (medications.length === 0) { %>
+        <p>No medications found for this patient.</p>
+    <% } %>
+    <% medications.forEach(med => { %>
+        <li><strong><%= med.name %></strong></li>
+        <li><%= med.description %></li>
+        <li>Side Effects: <%= med.sideEffects.join(', ') %></li> 
+        <li>Dosage: <%= med.dosage %></li>
 
-    <a href="/doctor/updatemedications/<%= med._id %>">
-      Update this medication
-    </a>
-    <hr>
-  <% }) %>
+        <a href="/doctor/updatemedications/<%= med._id %>">
+            Update this medication (Inventory)
+        </a>
+        <hr>
+    <% }) %>
 </ul>
-<a href="/doctor/dashboard"></a>
+<a href="/doctor/dashboard">Back to Dashboard</a>

@@ -1,4 +1,4 @@
-<h1>Selected User</h1>
+<h1>Selected User: <%= user.name %></h1>
 
 <p><strong>Name:</strong> <%= user.name %></p>
 <p><strong>Email:</strong> <%= user.email %></p>
@@ -7,5 +7,6 @@
 <hr>
 
 <h3>Actions</h3>
-  <li><a href="/admin/user/<%= user._id %>/edit">Edit User</a></li>
-
+<ul>
+    <li><a href="/admin/user/<%= user._id %>/edit">Edit User</a></li>
+</ul>

@@ -1,22 +1,24 @@
 <h1>Prescribe Medication Time</h1>
 
 <form id="prescribeForm">
-  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-  <input type="hidden" id="assignId" value="<%= assignmentId %>">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <input type="hidden" id="assignId" value="<%= assignmentId %>">
 
-  <label>Patient Name:
-      <input type="text" name="pat" required>
-  </label><br>
+    <p>Assignment ID: <strong><%= assignmentId %></strong></p>
+    
+    <label for="medicationId">Select Medication:</label><br>
+    <select id="medicationId" name="medicationId" required>
+        <option value="">-- Select Medication --</option>
+        <% medications.forEach(med => { %>
+            <option value="<%= med._id %>"><%= med.name %></option>
+        <% }); %>
+    </select><br><br>
 
-  <label>Medication Name:
-      <input type="text" name="med" required>
-  </label><br>
+    <label>Times (Comma Separated, e.g., 09:00, 14:00, 20:00):
+        <input type="text" name="times" required>
+    </label><br>
 
-  <label>Times:
-      <input type="text" name="times" required>
-  </label><br>
-
-  <button type="submit">Save & Route</button>
+    <button type="submit">Prescribe Time</button>
 </form>
 
 <div id="notify" style="
@@ -36,11 +38,18 @@ document.getElementById("prescribeForm").addEventListener("submit", async (e) =>
     const csrf = '<%= csrfToken %>';
 
     const data = {
-        pat: e.target.pat.value,
-        med: e.target.med.value,
-        times: e.target.times.value
+        // FIX: Use ID from select element
+        medicationId: document.getElementById("medicationId").value, 
+        // FIX: The times input name was corrected to match the controller expectation
+        times: e.target.times.value 
     };
+    
+    // Check if medication is selected
+    if (!data.medicationId) {
+        return showMsg("Please select a medication.", true);
+    }
 
+    // FIX: Corrected API path to include /doctor
     const res = await fetch(`/api/doctor/medicatimes/${assignId}`, {
         method: "POST",
         credentials: "include",
@@ -59,7 +68,7 @@ document.getElementById("prescribeForm").addEventListener("submit", async (e) =>
             window.location = "/doctor/assignments";
         }, 2000);
     } else {
-        showMsg(json.message || "Error", true);
+        showMsg(json.message || "Error creating medication time", true);
     }
 });
 

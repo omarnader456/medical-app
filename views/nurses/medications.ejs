@@ -1,11 +1,11 @@
-<h1>Medications</h1>
+<h1>All Medication Inventory</h1>
 <ul>
-  <% medications.forEach(med => { %>
-    <li><strong><%= med.name %></strong></li>
-    <li><%= med.description %></li>
-    <li><%= med.sideEffects %></li>
-    <li><%= med.dosage %></li>
-    <hr>
-  <% }) %>
+    <% medications.forEach(med => { %>
+        <li><strong><%= med.name %></strong></li>
+        <li>Description: <%= med.description %></li>
+        <li>Side Effects: <%= med.sideEffects.join(', ') %></li>
+        <li>Dosage: <%= med.dosage %></li>
+        <hr>
+    <% }) %>
 </ul>
-<a href="/nurses/dashboard"></a>
+<a href="/nurse/dashboard">Back to Dashboard</a>

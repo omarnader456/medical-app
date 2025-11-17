@@ -1,16 +1,15 @@
-<h1>Your Assigned Patients</h1>
+<h1>Your Assigned Doctor and Nurse</h1>
 
 <ul>
-  <% assignments.forEach(assign => { %>
-    <li style="margin-bottom: 15px;">
+    <% assignments.forEach(assign => { %>
+        <li style="margin-bottom: 15px;">
 
-      Doctor: <strong><%= assign.assigneddoc.name %></strong><br>
-      Nurse: <%= assign.assignednurse?.name || "None" %><br>
+            Doctor: <strong><%= assign.assigneddoc.name %></strong> (<%= assign.assigneddoc.specialty %>)<br>
+            Nurse: <%= assign.assignednurse?.name || "None" %> (<%= assign.assignednurse?.department || "N/A" %>)<br>
 
-      <a href="/doctor/medTimes/<%= assign._id %>">
-        Create Medication Time
-      </a>
-
-    </li>
-  <% }) %>
+        </li>
+    <% }) %>
+    <% if (assignments.length === 0) { %>
+        <li>You have no active assignments.</li>
+    <% } %>
 </ul>

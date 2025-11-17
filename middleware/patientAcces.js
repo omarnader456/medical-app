@@ -1,50 +1,53 @@
-const Assignment = require("../models/assignmentsModel");
+const asyncHandler = require('express-async-handler');
+const Assignpat = require('../models/assignpatModel');
+const Patient = require('../models/patientModel');
+const Doctor = require('../models/doctorModel');
+const Nurse = require('../models/nurseModel');
 
-async function doctorPatientAccess(req, res, next) {
-    try {
-        if (!req.user) return res.status(401).json({ message: "Not authenticated" });
+exports.doctorPatientAccess = asyncHandler(async (req, res, next) => {
+    const patientId = req.params.id;
+    const doctorUserId = req.user._id;
 
-        const patientId = req.params.id || req.body.Pid;
-        if (!patientId) return res.status(400).json({ message: "Patient ID missing" });
+    const doctor = await Doctor.findOne({ user: doctorUserId });
 
-        const assignment = await Assignment.findOne({
-            patient: patientId,
-            assigneddoc: req.user._id
-        });
-
-        if (!assignment)
-            return res.status(403).json({ message: "Doctor not assigned to this patient" });
-
-        next();
-    } catch (err) {
-        console.error(err);
-        return res.status(500).json({ message: "Server error checking doctor-patient relation" });
+    if (!doctor) {
+        res.status(403);
+        throw new Error('Doctor profile not found.');
     }
-}
 
-async function nursePatientAccess(req, res, next) {
-    try {
-        if (!req.user) return res.status(401).json({ message: "Not authenticated" });
+    const assignment = await Assignpat.findOne({
+        patient: patientId,
+        assigneddoc: doctor._id
+    });
 
-        const patientId = req.params.id || req.body.Pid;
-        if (!patientId) return res.status(400).json({ message: "Patient ID missing" });
-
-        const assignment = await Assignment.findOne({
-            patient: patientId,
-            assignednurse: req.user._id
-        });
-
-        if (!assignment)
-            return res.status(403).json({ message: "Nurse not assigned to this patient" });
-
-        next();
-    } catch (err) {
-        console.error(err);
-        return res.status(500).json({ message: "Server error checking nurse-patient relation" });
+    if (!assignment && req.user.role !== 'admin') { 
+        res.status(403);
+        throw new Error('Access denied. Patient not assigned to this doctor.');
     }
-}
 
-module.exports = {
-    doctorPatientAccess,
-    nursePatientAccess
-};
+    next();
+});
+
+exports.nursePatientAccess = asyncHandler(async (req, res, next) => {
+    const patientId = req.params.id;
+    const nurseUserId = req.user._id;
+
+    const nurse = await Nurse.findOne({ user: nurseUserId });
+
+    if (!nurse) {
+        res.status(403);
+        throw new Error('Nurse profile not found.');
+    }
+
+    const assignment = await Assignpat.findOne({
+        patient: patientId,
+        assignednurse: nurse._id
+    });
+
+    if (!assignment && req.user.role !== 'admin') {
+        res.status(403);
+        throw new Error('Access denied. Patient not assigned to this nurse.');
+    }
+
+    next();
+});

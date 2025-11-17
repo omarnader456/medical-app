@@ -1,15 +1,15 @@
 <h1>Patient ID</h1>
 
 <form id="patientForm">
-  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-  <label>Patient ID:
-      <input type="text" name="Pid" required>
-  </label>
-  <button type="submit">Save & Route</button>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <label>Patient ID:
+        <input type="text" name="Pid" required>
+    </label>
+    <button type="submit">Save & Route</button>
 </form>
 
 <div id="notify-box" 
-     style="
+      style="
         display:none;
         position: fixed;
         top: 20px;
@@ -21,7 +21,7 @@
         font-weight: bold;
         font-family: Arial;
         box-shadow: 0 3px 10px rgba(0,0,0,0.2);
-     ">
+      ">
 </div>
 
 <script>
@@ -37,28 +37,26 @@ function showNotification(message, type = "success") {
 document.getElementById("patientForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const Pid = e.target.Pid.value;
+    const csrf = "<%= csrfToken %>";
 
     try {
         const res = await fetch(`/api/patient/${Pid}`, {
             method: "GET",
             credentials: "include",
-            headers: { "CSRF-Token": "<%= csrfToken %>" }
+            headers: { "CSRF-Token": csrf }
         });
 
         const json = await res.json();
         console.log(json);
 
         if (res.ok) {
-            showNotification("Saved successfully!", "success");
-        } else if (json.message === "already exists") {
-            showNotification("Already recorded!", "warning");
+            showNotification("ID found and verified!", "success");
         } else {
-            alert(json.message || "Invalid ID");
-            showNotification("Failed to save!", "error");
+            showNotification(json.message || "Invalid ID or access denied", "error");
         }
     } catch (err) {
         console.error(err);
-        alert("Request failed");
+        showNotification("Request failed", "error");
     }
 });
 </script>

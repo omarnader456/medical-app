@@ -1,16 +1,16 @@
 <h1>Your Assigned Patients</h1>
 
 <ul>
-  <% assignments.forEach(assign => { %>
-    <li style="margin-bottom: 15px;">
+    <% assignments.forEach(assign => { %>
+        <li style="margin-bottom: 15px;">
 
-      Patient: <strong><%= assign.patient.name %></strong><br>
-      Doctor: <%= assign.assigneddoc?.name || "None" %><br>
+            Patient: <strong><%= assign.patient.name %></strong><br>
+            Doctor: <%= assign.assigneddoc?.name || "None" %><br>
 
-      <a href="/nurse/medicatimes/<%= assign._id %>">
-        View Medication Times
-      </a>
+            <a href="/nurse/medTimes">
+                View Medication Times (for selected patient)
+            </a>
 
-    </li>
-  <% }) %>
+        </li>
+    <% }) %>
 </ul>

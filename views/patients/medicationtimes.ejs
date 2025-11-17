@@ -1,6 +1,9 @@
-<h1>Medication Times</h1>
+<h1>Your Medication Times</h1>
 <ul>
-  <% medTimes.forEach(mt => { %>
-    <li><%= mt.medication %> at <%= mt.times.join(', ') %></li>
-  <% }) %>
+    <% medTimes.forEach(mt => { %>
+        <li><strong><%= mt.medication.name %></strong> at <%= mt.times.join(', ') %></li>
+    <% }) %>
 </ul>
+<% if (medTimes.length === 0) { %>
+    <p>No medication times have been scheduled for you.</p>
+<% } %>

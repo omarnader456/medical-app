@@ -1,75 +1,142 @@
-const User = require('../models/userModel');
-const jwt = require('jsonwebtoken');
 const asyncHandler = require('express-async-handler');
-const crypto = require('crypto');
+const speakeasy = require('speakeasy');
+const bcrypt = require('bcryptjs');
+const User = require('../models/userModel');
+const generateToken = require('../utils/generateToken');
 const { send2faEmail } = require('../config/mailer');
 
 exports.register = asyncHandler(async (req, res) => {
-    const { name, email, password, role } = req.body;
+    const { name, email, password, role } = req.body; 
     const userExists = await User.findOne({ email });
-    if (userExists) return res.status(400).json({ message: 'User already exists' });
+
+    if (userExists) {
+        res.status(400);
+        throw new Error('User already exists');
+    }
 
     const user = await User.create({ name, email, password, role });
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1d' });
-    
 
-    res.status(201).json({ token });
+    if (user) {
+        res.status(201).json({
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+        });
+    } else {
+        res.status(400);
+        throw new Error('Invalid user data');
+    }
 });
-
-async function send2FACodeToUser(user) {
-  const code = Math.floor(100000 + Math.random()*900000).toString(); // 6-digit
-  const codeHash = crypto.createHash('sha256').update(code).digest('hex');
-  user.twoFactor.codeHash = codeHash;
-  user.twoFactor.codeExpires = Date.now() + (10 * 60 * 1000); // 10 minutes
-  await user.save();
-  await send2faEmail(user.email, code);
-} 
 
 exports.login = asyncHandler(async (req, res) => {
     const { email, password } = req.body;
-    const user = await User.findOne({ email });
-    if (!user || !(await user.matchPassword(password))) {
-        return res.status(401).json({ message: 'Invalid email or password' });
-    }
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1d' });
-      res.cookie("token", token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: 24 * 60 * 60 * 1000
-  });
-    res.status(200).json({ token });
-    await send2FACodeToUser(user); 
-    return res.status(200).json({ requires2fa: true, message: "Enter code sent to  email" });
-});
 
+    const user = await User.findOne({ email });
+
+    if (user && (await user.matchPassword(password))) {
+        if (user.twoFactor.enabled) {
+            const secret = speakeasy.generateSecret({ length: 20 }).base32;
+            const code = speakeasy.totp({ secret, encoding: 'base32' });
+
+            const salt = await bcrypt.genSalt(10);
+            user.twoFactor.codeHash = await bcrypt.hash(code.toString(), salt);
+            user.twoFactor.codeExpires = new Date(Date.now() + 10 * 60 * 1000); 
+
+            await user.save();
+            await send2faEmail(user.email, code);
+
+            return res.json({ requires2fa: true, message: '2FA code sent to email.' });
+        }
+
+        generateToken(res, user._id);
+
+        res.json({
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+        });
+
+    } else {
+        res.status(401);
+        throw new Error('Invalid email or password');
+    }
+});
 
 exports.verify2fa = asyncHandler(async (req, res) => {
-  const { email, code } = req.body;
-  const user = await User.findOne({ email });
-  if (!user || !user.twoFactor || !user.twoFactor.codeHash) {
-    return res.status(400).json({ message: 'No pending 2FA' });
-  }
-  if (Date.now() > user.twoFactor.codeExpires) {
-    return res.status(400).json({ message: 'Code expired' });
-  }
-  const codeHash = crypto.createHash('sha256').update(code).digest('hex');
-  if (codeHash !== user.twoFactor.codeHash) {
-    return res.status(401).json({ message: 'Invalid code' });
-  }
+    const { email, code } = req.body;
 
-  user.twoFactor.codeHash = undefined;
-  user.twoFactor.codeExpires = undefined;
-  await user.save();
+    if (!code) {
+        res.status(400);
+        throw new Error('2FA code is required.');
+    }
 
-  const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1d' });
-  res.cookie('token', token, { httpOnly:true, secure: process.env.NODE_ENV === 'production', sameSite:'lax' });
-  res.json({ message: '2FA verified' });
+    const user = await User.findOne({ email: req.body.email }); 
+    
+    if (!user || !user.twoFactor.enabled || !user.twoFactor.codeHash) {
+        res.status(401);
+        throw new Error('2FA verification failed or user not found.');
+    }
+
+    const isMatch = await bcrypt.compare(code, user.twoFactor.codeHash);
+    const isExpired = user.twoFactor.codeExpires < new Date();
+
+    if (isMatch && !isExpired) {
+        user.twoFactor.codeHash = undefined;
+        user.twoFactor.codeExpires = undefined;
+        await user.save();
+
+        generateToken(res, user._id);
+        
+        return res.json({ message: 'Login successful' });
+    }
+
+    res.status(401);
+    throw new Error('Invalid or expired 2FA code.');
 });
 
+exports.updateSelfPassword = asyncHandler(async (req, res) => {
+    const user = await User.findById(req.user._id);
+    const { password } = req.body;
 
-module.exports = {
-    register: exports.register,
-    login: exports.login,
-    verify2fa: exports.verify2fa
-};
+    if (!user) {
+        res.status(404);
+        throw new Error('User not found');
+    }
+
+    user.password = password;
+    await user.save();
+
+    res.json({ status: 'success', message: 'Password updated successfully' });
+});
+
+exports.updateSelfProfile = asyncHandler(async (req, res) => {
+    const user = await User.findById(req.user._id);
+    const { name, email } = req.body;
+    
+    if (!user) {
+        res.status(404);
+        throw new Error('User not found');
+    }
+    
+    let updated = false;
+
+    if (name && name !== user.name) {
+        user.name = name;
+        updated = true;
+    }
+    
+    if (email && email !== user.email) {
+        user.email = email;
+        updated = true;
+    }
+    
+    if (!updated) {
+        return res.json({ status: 'already', message: 'No changes detected' });
+    }
+
+    await user.save();
+
+    res.json({ status: 'success', message: 'Profile updated successfully', name: user.name, email: user.email });
+});

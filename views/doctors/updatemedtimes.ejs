@@ -1,23 +1,38 @@
 <form id="updateMedTimesForm">
     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
 
-    <label>Times</label>
-    <input type="text" name="times">
+    <label>Times (Comma Separated)</label>
+    <input type="text" name="times" value="<%= medicationtime?.times?.join(', ') || '' %>"> 
 </form>
+
+<div id="notify-box"
+      style="
+        display:none;
+        position:fixed;
+        top:20px;
+        right:20px;
+        z-index:9999;
+        padding:15px;
+        border-radius:8px;
+        color:white;
+        font-weight:bold;
+        box-shadow:0 3px 10px rgba(0,0,0,0.3);
+      ">
+</div>
 
 <script>
 document.getElementById("updateMedTimesForm").addEventListener("submit", async (e) => {
     e.preventDefault();
 
     const form = e.target;
-    const medtmId = "<%= medicationtime._id %>";
+    const medtmId = "<%= medicationtime._id %>"; 
     const csrf = "<%= csrfToken %>";
 
     const body = {
         times: form.times.value || undefined
     };
 
-    const res = await fetch(`/api/medicatimes/${medtmId}`, {
+    const res = await fetch(`/api/doctor/medicatimes/${medtmId}`, { 
         method: "PUT",
         credentials: "include",
         headers: {
@@ -29,7 +44,7 @@ document.getElementById("updateMedTimesForm").addEventListener("submit", async (
 
     const json = await res.json();
 
-    if (json.status === "success") {
+    if (res.ok && json.status === "success") {
         showNotify("Updated successfully!", "success");
     }
     else if (json.status === "already") {
@@ -39,23 +54,7 @@ document.getElementById("updateMedTimesForm").addEventListener("submit", async (
         showNotify(json.message || "Update failed", "error");
     }
 });
-</script>
-<div id="notify-box"
-     style="
-        display:none;
-        position:fixed;
-        top:20px;
-        right:20px;
-        z-index:9999;
-        padding:15px;
-        border-radius:8px;
-        color:white;
-        font-weight:bold;
-        box-shadow:0 3px 10px rgba(0,0,0,0.3);
-     ">
-</div>
 
-<script>
 function showNotify(message, type="success") {
     const box = document.getElementById("notify-box");
 

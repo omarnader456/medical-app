@@ -1,22 +1,29 @@
 <% layout('layout') -%>
 <h1>Enter 2-factor authentication code</h1>
 <form id="twoForm">
-  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-  <label>Code: <input name="code" required></label>
-  <button>Submit</button>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <label>Code: <input name="code" required></label>
+    <button>Submit</button>
 </form>
 <script>
 document.getElementById('twoForm').addEventListener('submit', async (er) => {
-  er.preventDefault();
-  const code = er.target.code.value;
-  const res = await fetch('/api/auth/2fa/verify', {
-    method: 'POST',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json', 'CSRF-Token': document.querySelector('meta[name="csrf-token"]').content },
-    body: JSON.stringify({ code })
-  });
-  const json = await res.json();
-  if (res.ok) window.location = '/dashboard';
-  else alert(json.message || 'Invalid code');
+    er.preventDefault();
+    const code = er.target.code.value;
+    
+    
+    const res = await fetch('/api/auth/2fa/verify', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 
+            'Content-Type': 'application/json', 
+            'CSRF-Token': '<%= csrfToken %>' 
+        },
+        body: JSON.stringify({ code, email: 'user@example.com' }) 
+    });
+    
+    const json = await res.json();
+    
+    if (res.ok) window.location = '/dashboard';
+    else alert(json.message || 'Invalid code');
 });
 </script>

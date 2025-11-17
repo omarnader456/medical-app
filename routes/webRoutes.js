@@ -1,30 +1,37 @@
 const express = require('express');
 const router = express.Router();
-const { protect } = require('../middleware/authMiddleware');
-const MedicaTimes =require('../models/meditimesModel');
-const Medication =require('../models/medicationModel');
-
+const { protect, authorize } = require('../middleware/authMiddleware');
+const { doctorsOnly, nurseOnly, adminOnly } = require('../middleware/roleMiddleware'); 
+const MedicaTimes = require('../models/meditimesModel');
+const Medication = require('../models/medicationModel');
+const Assignpat = require('../models/assignpatModel');
+const Patient = require('../models/patientModel'); 
 router.get('/login', (req, res) => res.render('login'));
-
 router.get('/2fa', (req, res) => res.render('2fa'));
 
 router.get('/dashboard', protect, (req, res) => {
-  res.render('dashboard', { title: 'Dashboard' });
+    if (!req.user) return res.redirect('/login');
+    if (req.user.role === 'admin') return res.redirect('/admin/dashboard');
+    if (req.user.role === 'doctor') return res.redirect('/doctor/select-patient');
+    if (req.user.role === 'nurse') return res.redirect('/nurse/select-patient');
+    if (req.user.role === 'patient') return res.redirect('/patient/dashboard');
+    res.render('dashboard', { title: 'Dashboard', user: req.user });
 });
 
-const { doctorsOnly } = require('../middleware/roleMiddleware');
-const Assignpat = require('../models/assignpatModel');
 
-router.get('/select-patient', protect, doctorsOnly, async (req, res) => {
+router.get('/doctor/select-patient', protect, doctorsOnly, async (req, res) => {
     const assignments = await Assignpat.find({ assigneddoc: req.user._id }).populate('patient', 'name _id');
-    res.render('doctor/selectPatient', { assignments, csrfToken: req.csrfToken() });
+    res.render('doctors/selectPatient', { assignments });
 });
 
 router.post('/set-patient', protect, doctorsOnly, async (req, res) => {
     const { patientId } = req.body;
 
-    const assignment = await Assignpat.findOne({ patient: patientId, assigneddoc: req.user._id });
-    if (!assignment) return res.status(403).json({ message: 'Access denied' });
+    const doctor = await Doctor.findOne({ user: req.user._id });
+    if (!doctor) return res.status(403).json({ message: 'Doctor profile not found.' });
+
+    const assignment = await Assignpat.findOne({ patient: patientId, assigneddoc: doctor._id });
+    if (!assignment) return res.status(403).json({ message: 'Access denied: Patient not assigned.' });
 
     res.cookie('patientId', patientId, {
         httpOnly: true,
@@ -35,73 +42,158 @@ router.post('/set-patient', protect, doctorsOnly, async (req, res) => {
     res.json({ message: 'Patient selected' });
 });
 
-router.get('/dashboard', protect, doctorsOnly, async (req, res) => {
+router.get('/doctor/dashboard', protect, doctorsOnly, async (req, res) => {
     const patientId = req.cookies.patientId;
-    if (!patientId) return res.redirect('/select-patient');
+    if (!patientId) return res.redirect('/doctor/select-patient');
+
     const patient = await Patient.findById(patientId, 'name age diagnoses');
-    res.render('doctor/dashboard', {
-        patient,       
-        csrfToken: req.csrfToken()
+    if (!patient) return res.redirect('/doctor/select-patient');
+    
+    res.render('doctors/dashboard', {
+        patient,
     });
 });
 
-
-router.get('/patient/medications', protect, doctorsOnly, async (req, res) => {
+router.get('/doctor/patient/medications', protect, doctorsOnly, async (req, res) => {
     const patientId = req.cookies.patientId;
-    if (!patientId) return res.redirect('doctor/select-patient');
+    if (!patientId) return res.redirect('/doctor/select-patient');
 
-    const medications = await Medication.find({ patient: patientId }).populate('name', 'description','sideEffects','dosage');
+    const medTimes = await MedicaTimes.find({ patient: patientId }).populate('medication');
+    const medications = medTimes.map(mt => mt.medication).filter(med => med); 
 
-    res.render('doctor/medications', { medications, csrfToken: req.csrfToken() });
+    res.render('doctors/medications', { medications });
 });
+
 router.get('/doctor/updatemedications/:id', protect, doctorsOnly, async (req, res) => {
     const id = req.params.id;
+    const token = req.cookies.token;
 
-    const med = await fetch(`${process.env.BASE_URL}/api/doctor/medications/${id}`, {
+    const response = await fetch(`${process.env.BASE_URL}/api/doctor/medications/${id}`, {
+        headers: { Cookie: `token=${token}` }
+    });
+
+    const medication = await response.json();
+
+    if (!response.ok || medication.message) {
+        return res.status(response.status).render('error', { message: medication.message || 'Medication not found' });
+    }
+
+    res.render('doctors/updatemedications', { medication });
+});
+
+router.get('/doctor/patient/medTimes', protect, doctorsOnly, async (req, res) => {
+    const patientId = req.cookies.patientId;
+    if (!patientId) return res.redirect('/doctor/select-patient');
+
+    const medTimes = await MedicaTimes.find({ patient: patientId }).populate('medication', 'name times');
+
+    res.render('doctors/medTimes', { medTimes });
+});
+
+router.get('/doctor/medicatimes/:assignmentId', protect, doctorsOnly, async (req, res) => {
+    const assignmentId = req.params.assignmentId;
+    
+    const medications = await Medication.find({}, 'name _id');
+    
+    res.render('doctors/createMedTime', { 
+        assignmentId,
+        medications 
+    });
+});
+
+router.get('/doctor/assignments', protect, doctorsOnly, async (req, res) => {
+    const response = await fetch(`${process.env.BASE_URL}/api/doctor/assignments`, {
         headers: { Cookie: `token=${req.cookies.token}` }
     });
 
-    const medication = await med.json();
+    const assignments = await response.json();
 
-    res.render('doctor/updateMedication', { medication, csrfToken: req.csrfToken() });
+    res.render('doctors/assignments', { assignments });
 });
 
 
-router.get('/patient/medTimes', protect, doctorsOnly, async (req, res) => {
-    const patientId = req.cookies.patientId;
-    if (!patientId) return res.redirect('/select-patient');
 
-    const medTimes = await MedicaTimes.find({ patient: patientId }).populate('medication', 'times');
-
-    res.render('doctor/medTimes', { medTimes, csrfToken: req.csrfToken() });
+router.get('/nurse/select-patient', protect, nurseOnly, async (req, res) => {
+    const assignments = await Assignpat.find({ assignednurse: req.user._id }).populate('patient', 'name _id');
+    res.render('nurses/selectPatient', { assignments });
 });
 
+router.get('/nurse/dashboard', protect, nurseOnly, (req, res) => {
+    res.render('nurses/dashboard', { user: req.user });
+});
 
-router.get('/doctor/medications', protect, async (req, res) => {
+router.get('/nurse/assignments', protect, nurseOnly, async (req, res) => {
+    const response = await fetch(`${process.env.BASE_URL}/api/nurse/assignment`, {
+        headers: { Cookie: `token=${req.cookies.token}` }
+    });
+    const assignments = await response.json();
+    res.render('nurses/assignments', { assignments, userId: req.user._id });
+});
+
+router.get('/nurse/medications', protect, nurseOnly, async (req, res) => {
     const response = await fetch(`${process.env.BASE_URL}/api/doctor/medications`, {
         headers: { Cookie: `token=${req.cookies.token}` }
     });
 
     const medications = await response.json();
 
-    res.render('medications', { medications, csrfToken: req.csrfToken() });
+    res.render('nurses/medications', { medications });
 });
 
-router.get('/admin/users', protect, async (req, res) => {
+router.get('/nurse/medTimes', protect, nurseOnly, async (req, res) => {
+    const patientId = req.cookies.patientId;
+    if (!patientId) return res.redirect('/nurse/select-patient');
+
+    const medTimes = await MedicaTimes.find({ patient: patientId }).populate('medication', 'name times');
+
+    res.render('nurses/medTimes', { medTimes });
+});
+
+
+
+router.get('/patient/dashboard', protect, async (req, res) => {
+    res.render('patients/dashboard', { user: req.user });
+});
+
+router.get('/patient/assignment', protect, async (req, res) => {
+    const response = await fetch(`${process.env.BASE_URL}/api/patient/assignment`, {
+        headers: { Cookie: `token=${req.cookies.token}` }
+    });
+    const assignments = await response.json();
+    res.render('patients/assignment', {
+        assignments,
+        userId: req.user._id
+    });
+});
+
+router.get('/patient/medicationtimes', protect, async (req, res) => {
+    const patientProfile = await Patient.findOne({ user: req.user._id });
+    if (!patientProfile) return res.status(404).json({ message: 'Patient profile not linked.' });
+
+    const medTimes = await MedicaTimes.find({ patient: patientProfile._id }).populate('medication', 'name');
+
+    res.render('patients/medicationtimes', { medTimes });
+});
+
+
+router.get('/admin/dashboard', protect, authorize, (req, res) => {
+    res.render('admins/dashboard');
+});
+
+router.get('/admin/createmedication', protect, doctorsOnly, (req, res) => { 
+    res.render('admins/createmedication');
+});
+
+router.get('/admin/users', protect, authorize, async (req, res) => {
     const response = await fetch(`${process.env.BASE_URL}/api/admin/users`, {
         headers: { Cookie: `token=${req.cookies.token}` }
     });
 
     const users = await response.json();
-
-    res.render('admin/users', { users, csrfToken: req.csrfToken() });
+    res.render('admins/users', { users });
 });
-router.get('/user/account', protect, async (req, res) => {
-        headers: { Cookie: `token=${req.cookies.token}` }
-    });
-    res.render('/users/updateaccount', { csrfToken: req.csrfToken() 
-    });
-router.get('/admin/selectuser/:id', protect, async (req, res) => {
+
+router.get('/admin/selectuser/:id', protect, authorize, async (req, res) => {
     const userId = req.params.id;
 
     const response = await fetch(
@@ -111,100 +203,32 @@ router.get('/admin/selectuser/:id', protect, async (req, res) => {
 
     const user = await response.json();
 
-    if (!user || user.message === "User not found") {
+    if (!user || user.message) {
         return res.redirect('/admin/users');
     }
 
-    res.render('admin/selectUser', { 
-        user,
-        csrfToken: req.csrfToken() 
-    });
+    res.render('admins/selectuser', { user });
 });
 
-router.delete('/api/admin/users/:id', protect, deleteUser);
+router.get('/admin/user/:id/edit', protect, authorize, async (req, res) => {
+    const userId = req.params.id;
 
-router.get('/patient/assignments', protect, async (req, res) => {
-    const userId = req.user._id.toString();
+    const response = await fetch(
+        `${process.env.BASE_URL}/api/admin/users/${userId}`,
+        { headers: { Cookie: `token=${req.cookies.token}` } }
+    );
+    const user = await response.json();
 
-    const response = await fetch(`${process.env.BASE_URL}/api/doctor/assignments`, {
-        headers: {
-            Cookie: `token=${req.cookies.token}`,
-            "x-user-id": userId,
-            "x-csrf-token": req.csrfToken()
-        }
-    });
+    if (!response.ok || user.message) {
+        return res.redirect('/admin/users');
+    }
 
-    const assignments = await response.json();
-
-    res.render('doctor/assignments', { 
-        assignments,
-        csrfToken: req.csrfToken() 
-    });
+    res.render('admins/manageuser', { user });
 });
 
 
-router.get('/doctor/medicatimes/:id', protect, (req, res) => {
-    res.render('doctor/createMedTime', { 
-        assignmentId: req.params.id,
-        csrfToken: req.csrfToken()
-    });
+router.get('/user/updateaccount', protect, async (req, res) => {
+    res.render('users/updateaccount', { user: req.user });
 });
-
-router.get('/patient/assignments', protect, async (req, res) => {
-    const response = await fetch(`${process.env.BASE_URL}/api/patient/assignment`, {
-        headers: { Cookie: `token=${req.cookies.token}` }
-    });
-    const assignments = await response.json();
-    res.render('patient/assignment', {
-        assignments,
-        csrfToken: req.csrfToken(),
-        userId
-    });
-});
-
-router.get('/nurse/assignments', protect, async (req, res) => {
-    const response = await fetch(`${process.env.BASE_URL}/api/nurse/assignment`, {
-        headers: { Cookie: `token=${req.cookies.token}` }
-    });
-    const assignments = await response.json();
-    res.render('nurse/assignment', {
-        assignments,
-        csrfToken: req.csrfToken(),
-        userId
-    });
-});
-
-router.get('/nurse/medications', protect, async (req, res) => {
-    const response = await fetch(`${process.env.BASE_URL}/api/doctor/medications`, {
-        headers: { Cookie: `token=${req.cookies.token}` }
-    });
-
-    const medications = await response.json();
-
-    res.render('nurses/medications', { medications, csrfToken: req.csrfToken() });
-});
-
-router.get('/patient/medicationtimes', protect, async (req, res) => {
-    const patientId = req.cookies.user._id;
-
-    const medTimes = await MedicaTimes.find({ patient: patientId }).populate('medication', 'times');
-
-    res.render('patients/medicationtimes', { medTimes, csrfToken: req.csrfToken() });
-});
-
-router.get('/nurse/medTimes', protect, async (req, res) => {
-    const patientId = req.cookies.patientId;
-    if (!patientId) return res.redirect('nurse/select-patient');
-
-    const medTimes = await MedicaTimes.find({ patient: patientId }).populate('medication', 'times');
-
-    res.render('nurses/medTimes', { medTimes, csrfToken: req.csrfToken() });
-});
-
-router.get('nurse/select-patient', protect, async (req, res) => {
-    const assignments = await Assignpat.find({ assignednurse: req.user._id }).populate('patient', 'name _id');
-    res.render('nurse/selectPatient', { assignments, csrfToken: req.csrfToken() });
-});
-
 
 module.exports = router;

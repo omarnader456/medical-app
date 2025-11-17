@@ -3,12 +3,17 @@
 <h2>Patient Info</h2>
 <p>Name: <%= patient.name %></p>
 <p>Age: <%= patient.age %></p>
-<p>Brief Diagnosis: <%= patient.diagnoses.join(', ') %></p>
+<% if (patient.diagnoses) { %>
+    <p>Brief Diagnosis: <%= patient.diagnoses %></p> 
+<% } else { %>
+    <p>Brief Diagnosis: Not specified</p>
+<% } %>
 
 <h3>Links</h3>
 <ul>
     <li><a href="/doctor/patient/medications">View Medications</a></li>
     <li><a href="/doctor/patient/medTimes">View Medication Times</a></li>
-    <li><a href="/admin/createmedication">Create Medication</a></li>
-    <li><a href="user/updateaccount">Update Account</a></li>
+    <li><a href="/admin/createmedication">Create Medication (Inventory)</a></li>
+    <li><a href="/user/updateaccount">Update Account</a></li>
+    <li><a href="/doctor/select-patient">Change Selected Patient</a></li>
 </ul>

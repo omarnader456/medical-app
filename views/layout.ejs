@@ -1,20 +1,16 @@
 <!doctype html>
 <html>
 <head>
-  <meta charset="utf-8" />
-  <meta name="csrf-token" content="<%= csrfToken %>">
-  <title><%= title || 'Medical App' %></title>
-  <link href="/public/css/main.css" rel="stylesheet">
+    <meta charset="utf-8" />
+    <meta name="csrf-token" content="<%= csrfToken %>"> 
+    <title><%= title || 'Medical App' %></title>
+    <link href="/public/css/main.css" rel="stylesheet">
 </head>
 <body>
-  <%- include('partials/header') %>
+    <%- include('partials/header') %> <main>
+        <%- body %>
+    </main>
 
-  <main>
-    <%- body %>
-  </main>
-
-  <%- include('partials/footer') %>
-  <script src="/public/js/main.js"></script>
-</body>
+    <%- include('partials/footer') %>
+    </body>
 </html>
-

@@ -1,11 +1,10 @@
-module.exports = (err, req, res, next) => {
-    console.error(err.stack);
-
-    const status = err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-
-    res.status(status).json({
-        status: "error",
-        message
+const errorHandler = (err, req, res, next) => {
+    const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
+    res.status(statusCode);
+    res.json({
+        message: err.message,
+        stack: process.env.NODE_ENV === 'production' ? null : err.stack,
     });
 };
+
+module.exports = errorHandler;

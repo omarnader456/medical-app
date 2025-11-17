@@ -1,8 +1,8 @@
 <h1>Patient <%= patientId %></h1>
 <script>
-  (async () => {
-    const res = await fetch(`/api/patient/${'<%= patientId %>'}`, { credentials: 'include' });
-    const data = await res.json();
-    console.log(data);
-  })();
+    (async () => {
+        const res = await fetch(`/api/patient/${'<%= patientId %>'}`, { credentials: 'include' });
+        const data = await res.json();
+        console.log(data);
+    })();
 </script>

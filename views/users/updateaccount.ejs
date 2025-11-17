@@ -12,13 +12,12 @@
     <option value="">Choose option</option>
     <option value="name">Update Name</option>
     <option value="email">Update Email</option>
-    <option value="role">Update Role</option>
     <option value="password">Update Password</option>
 </select>
 
 <div id="inputArea" style="margin-top:20px;"></div>
 
-<button id="updateBtn" class="btn btn-primary">Update User</button>
+<button id="updateBtn" class="btn btn-primary">Update Account</button>
 
 <hr>
 
@@ -33,13 +32,14 @@
 
 <script>
     const userId = "<%= user._id %>";
+    const csrfToken = "<%= csrfToken %>";
 
     document.getElementById("updateaccount").addEventListener("change", function () {
         const field = this.value;
         const area = document.getElementById("inputArea");
+        area.innerHTML = ""; // Clear area on change
 
         if (!field) {
-            area.innerHTML = "";
             return;
         }
 
@@ -62,7 +62,6 @@
     });
 
 
-
     document.getElementById("updateBtn").addEventListener("click", async () => {
         const field = document.getElementById("updateaccount").value;
 
@@ -70,6 +69,8 @@
             return showNotification("Please select an option!", true);
         }
 
+        let url;
+        let body = {};
 
         if (field === "password") {
             const pass = document.getElementById("updatePassword")?.value;
@@ -83,57 +84,51 @@
                 return showNotification("Passwords do not match", true);
             }
 
-            const response = await fetch(`/api/admin/users/password`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ password: pass })
-            });
+            // FIX: Use dedicated self-service endpoint for password update
+            url = `/api/auth/password`;
+            body.password = pass;
+        } else {
+            const value = document.getElementById("updateField")?.value;
 
-            const data = await response.json();
-
-            if (data.status === "success") {
-                return showNotification("Password updated successfully!");
+            if (!value) {
+                return showNotification(`Please enter a value for ${field}`, true);
             }
 
-            return showNotification(data.message || "Password update failed", true);
+            // FIX: Use dedicated self-service endpoint for profile update
+            url = `/api/auth/profile`; 
+            body[field] = value;
         }
 
-
-
-        const value = document.getElementById("updateField")?.value;
-
-        if (!value) {
-            return showNotification("Please enter a value", true);
-        }
-
-        const body = {};
-        body[field] = value;
-
-        const response = await fetch(`/api/admin/users/update`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
+        const response = await fetch(url, {
+            method: "PUT",
+            credentials: 'include',
+            headers: { 
+                "Content-Type": "application/json",
+                "CSRF-Token": csrfToken // Use the global CSRF token
+            },
             body: JSON.stringify(body)
         });
 
         const data = await response.json();
 
-        if (data.status === "success") {
-            showNotification("Updated successfully!");
+        if (response.ok && data.status === "success") {
+            showNotification(`${field.charAt(0).toUpperCase() + field.slice(1)} updated successfully!`);
+            // Reload to show name/email change in the header
+            setTimeout(() => window.location.reload(), 1500);
         }
         else if (data.status === "already") {
-            showNotification("Already updated!", "warning");
+            showNotification("No changes detected!", "warning");
         }
         else {
-            showNotification(data.message, true);
+            showNotification(data.message || "Update failed", true);
         }
     });
-
 
 
     function showNotification(msg, error = false) {
         const box = document.getElementById("notification");
         box.style.display = "block";
-        box.style.background = error ? "#e53935" : "#4caf50";
+        box.style.background = error ? "#e53935" : (error === "warning" ? "#ffc107" : "#4caf50");
         box.innerText = msg;
 
         setTimeout(() => {

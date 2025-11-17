@@ -1,119 +1,95 @@
-const MedicaTimes = require('../models/meditimesModel');
-const asyncHandler = require('express-async-handler');
-const Patient = require('../models/patientModel');
+const MediTimes = require('../models/meditimesModel');
 const Medication = require('../models/medicationModel');
-const { getAssignmentById } = require('./assignpatController');
-const Assignpat=require('../models/assignpatModel');
-const Doctor=require('../models/doctorModel');
-
+const Patient = require('../models/patientModel');
+const Assignpat = require('../models/assignpatModel');
+const asyncHandler = require('express-async-handler');
 
 exports.getAllMedicaTimes = asyncHandler(async (req, res) => {
-    const medicaTimes = await MedicaTimes.find()
-        .populate('patient', 'name _id')
-        .populate('medication', 'name dosage');
-    res.status(200).json(medicaTimes);
+    const userRole = req.user.role;
+    let query = {};
+    
+    
+    const medTimes = await MediTimes.find(query).populate('medication', 'name dosage').populate('patient', 'name');
+    res.json(medTimes);
 });
 
 exports.createMedicaTime = asyncHandler(async (req, res) => {
-    const user = req.user;
-    if (user.role !== 'doctor') return res.status(403).json({ message: 'Access denied' });
+    const { assignmentId } = req.params;
+    const { medicationId, times } = req.body; 
+    
+    const assignment = await Assignpat.findById(assignmentId);
+    if (!assignment) {
+        res.status(404);
+        throw new Error('Assignment not found');
+    }
+    const patientId = assignment.patient;
 
- 
-    const assignment = await Assignpat.findById(req.params.id)
-        .populate('patient', 'name _id')
-        .populate('assigneddoc', 'name _id user') 
-        .populate('assignednurse', 'name _id');
-
-    if (!assignment) return res.status(404).json({ message: 'Assignment not found' });
-
-    const { pat, times, med } = req.body;
-
-    const patient = await Patient.findOne({ name: pat });
-    const medication = await Medication.findOne({ name: med });
-
-    if (!patient) return res.status(404).json({ message: 'Patient not found' });
-    if (!medication) return res.status(404).json({ message: 'Medication not found' });
-
-    console.log('Assignment doctor user ID:', assignment.assigneddoc.user.toString());
-    console.log('Logged in user ID:', user._id.toString());
-    console.log('Assignment patient ID:', assignment.patient._id.toString());
-    console.log('Patient from body ID:', patient._id.toString());
-
-    const doctor = await Doctor.findOne({ user: user._id });
-    if (!doctor) return res.status(403).json({ message: 'Doctor profile not found for this user' });
-
-    if (assignment.assigneddoc._id.toString() !== doctor._id.toString() ||
-        assignment.patient._id.toString() !== patient._id.toString()) {
-        return res.status(403).json({ message: 'Access denied' });
+    const medication = await Medication.findById(medicationId);
+    if (!medication) {
+        res.status(404);
+        throw new Error('Medication not found');
     }
 
-    const newMedicaTime = new MedicaTimes({
-        patient: patient._id,
-        medication: medication._id,
-        times
+    const timesArray = Array.isArray(times) 
+        ? times 
+        : (times ? times.split(',').map(t => t.trim()) : []);
+
+    const mediTime = await MediTimes.create({
+        patient: patientId,
+        medication: medicationId,
+        times: timesArray
     });
 
-    await newMedicaTime.save();
-    res.status(201).json(newMedicaTime);
+    res.status(201).json(mediTime);
 });
 
-
 exports.getMedicaTimeById = asyncHandler(async (req, res) => {
-    const user = req.user;
-    if (user.role !== 'doctor' && user.role !== 'nurse') return res.status(403).json({ message: 'Access denied' });
-
-    const medicaTime = await MedicaTimes.findById(req.params.id);
+    const medTime = await MediTimes.findById(req.params.id)
+        .populate('medication', 'name description dosage')
+        .populate('patient', 'name');
+        
+    if (!medTime) {
+        res.status(404);
+        throw new Error('Medication time not found');
+    }
     
-    if (!medicaTime) return res.status(404).json({ message: 'MedicaTime not found' });
 
-    res.status(200).json(medicaTime);
+    res.json(medTime);
 });
 
 exports.updateMedicaTime = asyncHandler(async (req, res) => {
-    const user = req.user;
-    if (user.role !== 'doctor') return res.status(403).json({ message: 'Access denied' });
-
-    const assignment = await getAssignmentById(req.params.id);
-    const doctor = await Doctor.findOne({ user: user._id });
-    if (!doctor) return res.status(403).json({ message: 'Doctor profile not found for this user' });
-
-    if (!assignment || assignment.assigneddoc._id.toString() !== doctor._id.toString()) {
-    return res.status(403).json({ message: 'Access denied' });
+    const { times } = req.body;
+    
+    const mediTime = await MediTimes.findById(req.params.id);
+    
+    if (!mediTime) {
+        res.status(404);
+        throw new Error('Medication time not found');
     }
 
-    const medicaTime = await MedicaTimes.findByIdAndUpdate(
-        req.params.id,
-        { times: req.body.times },
-        { new: true }
-    );
+    const newTimesArray = Array.isArray(times) 
+        ? times 
+        : (times ? times.split(',').map(t => t.trim()) : []);
+        
+    if (JSON.stringify(mediTime.times) === JSON.stringify(newTimesArray)) {
+        return res.json({ status: 'already', message: 'No changes detected' });
+    }
 
-    if (!medicaTime) return res.status(404).json({ message: 'MedicaTime not found' });
-    res.status(200).json(medicaTime);
+    mediTime.times = newTimesArray;
+    await mediTime.save();
+    
+    res.json({ status: 'success', message: 'Medication time updated successfully', mediTime });
 });
 
 exports.deleteMedicaTime = asyncHandler(async (req, res) => {
-    const user = req.user;
-    if (user.role !== 'doctor') return res.status(403).json({ message: 'Access denied' });
+    const mediTime = await MediTimes.findById(req.params.id);
 
-    const assignment = await Assignpat.findById(req.params.assignid);
-
-    const doctor = await Doctor.findOne({ user: user._id });
-    if (!doctor) return res.status(403).json({ message: 'Doctor profile not found for this user' });
-
-    if (!assignment || assignment.assigneddoc._id.toString() !== doctor._id.toString()) {
-    return res.status(403).json({ message: 'Access denied' });
+    if (!mediTime) {
+        res.status(404);
+        throw new Error('Medication time not found');
     }
 
-    const medicaTime = await MedicaTimes.findByIdAndDelete(req.params.id);
-    if (!medicaTime) return res.status(404).json({ message: 'MedicaTime not found' });
-
-    res.status(200).json({ message: 'MedicaTime deleted successfully' });
+    
+    await mediTime.deleteOne();
+    res.json({ status: 'success', message: 'Medication time removed' });
 });
-
-module.exports = {
-    getAllMedicaTimes: exports.getAllMedicaTimes,
-    createMedicaTime: exports.createMedicaTime,
-    getMedicaTimeById: exports.getMedicaTimeById,
-    updateMedicaTime: exports.updateMedicaTime,
-    deleteMedicaTime: exports.deleteMedicaTime
-};

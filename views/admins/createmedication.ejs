@@ -1,24 +1,24 @@
 <h1>Create Medication</h1>
 
 <form id="MedicationForm">
-  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
 
-  <label>Medication Name:
-      <input type="text" name="name" required>
-  </label><br>
+    <label>Medication Name:
+        <input type="text" name="name" required>
+    </label><br>
 
-  <label>Medication Description:
-      <input type="text" name="description" required>
-  </label><br>
+    <label>Medication Description:
+        <input type="text" name="description" required>
+    </label><br>
 
-  <label>Medication SideEffects:
-      <input type="text" name="SideEffects" required>
-  </label><br>
-   <label>Medication Dosage:
-      <input type="text" name="dosage" required>
-  </label><br> 
+    <label>Medication SideEffects (Comma Separated):
+        <input type="text" name="sideEffects" required>
+    </label><br>
+    <label>Medication Dosage:
+        <input type="text" name="dosage" required>
+    </label><br> 
 
-  <button type="submit">Save & Route</button>
+    <button type="submit">Create Medication</button>
 </form>
 
 <div id="notify" style="
@@ -39,7 +39,7 @@ document.getElementById("MedicationForm").addEventListener("submit", async (e) =
     const data = {
         name: e.target.name.value,
         description: e.target.description.value,
-        sideEffects: e.target.sideEffects.value,
+        sideEffects: e.target.sideEffects.value, 
         dosage: e.target.dosage.value
     };
 
@@ -58,10 +58,10 @@ document.getElementById("MedicationForm").addEventListener("submit", async (e) =
     if (res.ok) {
         showMsg("Medication created!", false);
         setTimeout(() => {
-            window.location = "/doctor/medication";
+            window.location = "/doctor/patient/medications"; 
         }, 2000);
     } else {
-        showMsg(json.message || "Error", true);
+        showMsg(json.message || "Error creating medication", true);
     }
 });
 

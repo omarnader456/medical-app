@@ -1,45 +1,40 @@
-const User = require('../models/userModel');
 const Nurse = require('../models/nurseModel');
 const asyncHandler = require('express-async-handler');
 
-exports.createNurse = asyncHandler(async (req, res) => {
-    const user = req.user;
-    if (user.role !== 'admin') return res.status(403).json({ message: 'Access denied' });
-
-    const { name, department } = req.body;
-    const nrs = await User.findOne({ name });
-    if (!nrs || nrs.role !== 'nurse') return res.status(400).json({ message: 'Invalid nurse user ID' });
-
-    const nurse = await Nurse.create({ user: nrs._id, name, department });
-    res.status(201).json(nurse);
-});
-
 exports.getNurses = asyncHandler(async (req, res) => {
-    const nurses = await Nurse.find({}, 'name _id department');
-    res.status(200).json(nurses);
+    const nurses = await Nurse.find().populate('user', 'email');
+    res.json(nurses);
 });
 
 exports.getNurseById = asyncHandler(async (req, res) => {
-    const nurse = await Nurse.findById(req.params.id);
-    if (!nurse) return res.status(404).json({ message: 'Nurse not found' });
-    res.status(200).json(nurse);
+    const nurse = await Nurse.findById(req.params.id).populate('user', 'email');
+    if (!nurse) {
+        res.status(404);
+        throw new Error('Nurse not found');
+    }
+    res.json(nurse);
+});
+
+exports.createNurse = asyncHandler(async (req, res) => {
+    const { userId, name, department } = req.body;
+
+    const nurse = await Nurse.create({
+        user: userId,
+        name,
+        department,
+    });
+
+    res.status(201).json(nurse);
 });
 
 exports.deleteNurse = asyncHandler(async (req, res) => {
-    const user = req.user;
-    if (user.role !== 'admin') return res.status(403).json({ message: 'Access denied' });
-    const nurse=Nurse.findById(req.params.id);
-    if (!nurse) return res.status(404).json({ message: 'Nurse not found' });
-     await User.findByIdAndDelete(nurse.user);
-    await Nurse.findByIdAndDelete(nurse._id);
+    const nurse = await Nurse.findById(req.params.id);
 
-    res.status(200).json({ message: "Nurse + User deleted successfully" });
+    if (!nurse) {
+        res.status(404);
+        throw new Error('Nurse not found');
+    }
 
+    await nurse.deleteOne();
+    res.json({ status: 'success', message: 'Nurse removed' });
 });
-
-module.exports = {
-    createNurse: exports.createNurse,
-    getNurses: exports.getNurses,
-    getNurseById: exports.getNurseById,
-    deleteNurse: exports.deleteNurse
-};

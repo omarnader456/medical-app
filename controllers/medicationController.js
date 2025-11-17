@@ -1,97 +1,89 @@
 const Medication = require('../models/medicationModel');
 const asyncHandler = require('express-async-handler');
 
-exports.createMedication = asyncHandler(async (req, res) => {
-    const user = req.user;
-    if (user.role !== 'doctor' && user.role !== 'admin') {
-        return res.status(403).json({ message: 'Access denied' });
-    }
+exports.getAllMedications = asyncHandler(async (req, res) => {
+    const medications = await Medication.find({});
+    res.json(medications);
+});
 
+exports.createMedication = asyncHandler(async (req, res) => {
     const { name, description, sideEffects, dosage } = req.body;
-    const medication = new Medication({ name, description, sideEffects, dosage });
-    await medication.save();
+    
+    const sideEffectsArray = Array.isArray(sideEffects) 
+        ? sideEffects 
+        : (sideEffects ? sideEffects.split(',').map(s => s.trim()) : []);
+
+    const medication = await Medication.create({
+        name,
+        description,
+        sideEffects: sideEffectsArray,
+        dosage,
+    });
 
     res.status(201).json(medication);
 });
 
 exports.getMedicationById = asyncHandler(async (req, res) => {
     const medication = await Medication.findById(req.params.id);
-    if (!medication) return res.status(404).json({ message: 'Medication not found' });
-
-    res.status(200).json(medication);
+    if (!medication) {
+        res.status(404);
+        throw new Error('Medication not found');
+    }
+    res.json(medication);
 });
 
 exports.updateMedication = asyncHandler(async (req, res) => {
-    const user = req.user;
-
-    if (user.role !== 'doctor' && user.role !== 'admin') {
-        return res.status(403).json({ status: "error", message: 'Access denied' });
-    }
-    const id = req.params.id;
-    const medication = await Medication.findById(id);
-    if (!medication) {
-        return res.status(404).json({ status: "error", message: 'Medication not found' });
-    }
     const { name, description, sideEffects, dosage } = req.body;
-    const updates = {};
-    const changedFields = [];
-    if (name !== undefined && name.trim() !== medication.name) {
-        updates.name = name.trim();
-        changedFields.push("name");
+    
+    const medication = await Medication.findById(req.params.id);
+    
+    if (!medication) {
+        res.status(404);
+        throw new Error('Medication not found');
     }
-    if (description !== undefined && description.trim() !== medication.description) {
-        updates.description = description.trim();
-        changedFields.push("description");
-    }
-    if (sideEffects !== undefined && sideEffects.trim() !== medication.sideEffects) {
-        updates.sideEffects = sideEffects.trim();
-        changedFields.push("sideEffects");
-    }
-    if (dosage !== undefined && dosage.trim() !== medication.dosage) {
-        updates.dosage = dosage.trim();
-        changedFields.push("dosage");
-    }
-    if (changedFields.length === 0) {
-        return res.status(200).json({
-            status: "already",
-            message: "No changes detected. Already updated.",
-        });
-    }
-    const updated = await Medication.findByIdAndUpdate(
-        id,
-        updates,
-        { new: true }
-    );
 
-    return res.status(200).json({
-        status: "success",
-        message: "Medication updated successfully",
-        updated
-    });
+    let updated = false;
+
+    if (name && name !== medication.name) {
+        medication.name = name;
+        updated = true;
+    }
+    if (description && description !== medication.description) {
+        medication.description = description;
+        updated = true;
+    }
+    if (dosage && dosage !== medication.dosage) {
+        medication.dosage = dosage;
+        updated = true;
+    }
+    
+    if (sideEffects !== undefined) {
+        const newSideEffects = Array.isArray(sideEffects) 
+            ? sideEffects 
+            : (sideEffects ? sideEffects.split(',').map(s => s.trim()) : []);
+            
+        if (JSON.stringify(medication.sideEffects) !== JSON.stringify(newSideEffects)) {
+            medication.sideEffects = newSideEffects;
+            updated = true;
+        }
+    }
+
+    if (!updated) {
+        return res.json({ status: 'already', message: 'No changes detected' });
+    }
+
+    await medication.save();
+    res.json({ status: 'success', message: 'Medication updated successfully', medication });
 });
-
 
 exports.deleteMedication = asyncHandler(async (req, res) => {
-    const user = req.user;
-    if (user.role !== 'doctor' && user.role !== 'admin') {
-        return res.status(403).json({ message: 'Access denied' });
+    const medication = await Medication.findById(req.params.id);
+
+    if (!medication) {
+        res.status(404);
+        throw new Error('Medication not found');
     }
 
-    const medication = await Medication.findByIdAndDelete(req.params.id);
-    if (!medication) return res.status(404).json({ message: 'Medication not found' });
-
-    res.status(200).json({ message: 'Medication deleted successfully' });
+    await medication.deleteOne();
+    res.json({ status: 'success', message: 'Medication removed' });
 });
-
-exports.getAllMedications = asyncHandler(async (req, res) => {
-    const medications = await Medication.find();
-    res.status(200).json(medications);
-});
-
-module.exports = {
-    getAllMedications: exports.getAllMedications,
-    createMedication: exports.createMedication,
-    getMedicationById: exports.getMedicationById,
-    updateMedication: exports.updateMedication,
-    deleteMedication: exports.deleteMedication
-};

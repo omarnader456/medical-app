@@ -1,8 +1,8 @@
-module.exports = (req, res, next) => {
-  try {
-    res.locals.csrfToken = typeof req.csrfToken === "function" ? req.csrfToken() : null;
-  } catch {
-    res.locals.csrfToken = null;
-  }
-  next();
+const viewMiddleware = (req, res, next) => {
+    if (req.csrfToken) {
+        res.locals.csrfToken = req.csrfToken();
+    }
+    next();
 };
+
+module.exports = viewMiddleware;
